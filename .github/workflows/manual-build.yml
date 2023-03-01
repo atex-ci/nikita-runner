@@ -9,6 +9,16 @@ on:
         default: 'main'
 
 jobs:
+  convox:
+    runs-on: ubuntu-latest
+    steps:      
+      - name: install convox cli
+        run: |
+          curl -L https://github.com/convox/convox/releases/latest/download/convox-linux -o /tmp/convox
+          mv /tmp/convox /usr/local/bin/convox
+          chmod 755 /usr/local/bin/convox
+          convox version
+
   main:
     runs-on: ubuntu-latest
     env:
@@ -64,4 +74,12 @@ jobs:
 
       - name: BUILD
         run: |
-          ./shared/build/boot.sh ${{ github.ref }} ${{ steps.jobs.outputs.html_url }} ${{ secrets.JIRA_AUTH_TOKEN }}
+          ./shared/build/boot.sh ${{ github.ref }} ${{ steps.jobs.outputs.html_url }} ${{ secrets.JIRA_AUTH_TOKEN }} ${{ secrets.CONVOX_TOKEN_DEV }}
+
+  deploy:
+   runs-on: ubuntu-latest
+   needs: ['convox', 'main']
+   steps:
+      - name: deploy application
+        run: |
+          ls -la
