@@ -1,0 +1,60 @@
+name: manual-build
+
+on:  
+  workflow_dispatch:
+    inputs:
+      GIT_BRANCH:
+        description: 'branch to clone'     
+        required: true
+        default: 'main'
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    env:
+      SENTRY_AUTH_TOKEN: "${{ secrets.SENTRY_AUTH_TOKEN}}"
+      
+    steps:
+      - name: checkout
+        run: |
+          pwd
+          git config --global http.sslverify false
+          git clone --branch "${{ github.event.inputs.GIT_BRANCH}}" "https://${{ github.repository_owner }}:${{ secrets.GH_PASSWORD }}@github.com/atex-ci/nikita.git" .
+          ls -la
+
+      - name: ensure aws cli is present
+        run: |
+          aws --version
+
+      - name: authenticate aws cli
+        run: |
+          aws configure set aws_access_key_id "${{ secrets.AWS_ACCESS_KEY_ID }}"
+          aws configure set aws_secret_access_key "${{ secrets.AWS_SECRET_ACCESS_KEY}}"
+          
+      - uses: pnpm/action-setup@v2
+        name: Install pnpm
+        id: pnpm-install
+        with:
+          version: 7
+          run_install: false
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v3
+        name: Setup pnpm cache
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: build
+        run: |
+          ./shared/build/boot.sh ${{ github.ref }} ${{ secrets.JIRA_AUTH_TOKEN }}
