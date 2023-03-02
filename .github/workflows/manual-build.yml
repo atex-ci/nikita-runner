@@ -9,27 +9,6 @@ on:
         default: 'main'
 
 jobs:
-  convox:
-    runs-on: ubuntu-latest
-    steps:      
-      - name: install convox cli
-        run: |
-          curl -L https://github.com/convox/convox/releases/latest/download/convox-linux -o /tmp/convox
-          mv /tmp/convox /usr/local/bin/convox
-          chmod 755 /usr/local/bin/convox
-          convox version
-
-  aws:
-    runs-on: ubuntu-latest
-    steps:      
-      - name: ensure aws cli is present
-        run: |
-          aws --version
-
-      - name: authenticate aws cli
-        run: |
-          aws configure set aws_access_key_id "${{ secrets.AWS_ACCESS_KEY_ID }}"
-          aws configure set aws_secret_access_key "${{ secrets.AWS_SECRET_ACCESS_KEY}}"
 
   main:
     runs-on: ubuntu-latest
@@ -75,6 +54,22 @@ jobs:
           github_token: ${{ secrets.GH_PASSWORD }}
           job_name: ${{ github.job }}
 
+      - name: ensure aws cli is present
+        run: |
+          aws --version
+
+      - name: authenticate aws cli
+        run: |
+          aws configure set aws_access_key_id "${{ secrets.AWS_ACCESS_KEY_ID }}"
+          aws configure set aws_secret_access_key "${{ secrets.AWS_SECRET_ACCESS_KEY}}"
+
+      - name: install convox cli
+        run: |
+          curl -L https://github.com/convox/convox/releases/latest/download/convox-linux -o /tmp/convox
+          mv /tmp/convox /usr/local/bin/convox
+          chmod 755 /usr/local/bin/convox
+          convox version
+          
       - name: BUILD
         run: |
           ./shared/build/boot.sh ${{ github.ref }} ${{ steps.jobs.outputs.html_url }} ${{ secrets.JIRA_AUTH_TOKEN }} ${{ secrets.CONVOX_TOKEN_DEV }}
