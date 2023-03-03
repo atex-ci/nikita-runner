@@ -72,4 +72,4 @@ jobs:
           
       - name: BUILD
         run: |
-          ./shared/build/boot.sh ${{ github.ref }} ${{ steps.jobs.outputs.html_url }} ${{ secrets.JIRA_AUTH_TOKEN }} ${{ secrets.CONVOX_TOKEN }}
+          ./shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" ${{ steps.jobs.outputs.html_url }} ${{ secrets.JIRA_AUTH_TOKEN }} ${{ secrets.CONVOX_TOKEN }}
