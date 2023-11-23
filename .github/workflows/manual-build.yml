@@ -73,4 +73,4 @@ jobs:
           
       - name: BUILD
         run: |
-          ./shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" ${{ steps.jobs.outputs.html_url }} ${{ secrets.JIRA_AUTH_TOKEN }} ${{ secrets.CONVOX_TOKEN }} "${{ secrets.AURORA_PASSWORD }}" "${{ github.event.inputs.ENVIRONMENT }}" "${{ secrets.SALT }}" "${{ github.event.inputs.SKIP_TESTS}}"
+          ./shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.ENVIRONMENT }}" "${{ secrets.SALT }}" "${{ github.event.inputs.SKIP_TESTS}}"
