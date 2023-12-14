@@ -51,6 +51,15 @@ jobs:
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}-v1
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
+      
+      - name: Setup nx cache
+        uses: actions/cache/restore@v3
+        with:
+          path: |
+            .nx
+          key: ${{ runner.os }}-nx-${{ hashFiles('**/nx/**') }}
+          restore-keys: |
+            ${{ runner.os }}-nx-
 
       - name: Install dependencies
         run: pnpm install
@@ -74,3 +83,17 @@ jobs:
       - name: BUILD
         run: |
           ./shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.ENVIRONMENT }}" "${{ secrets.SALT }}" "${{ github.event.inputs.SKIP_TESTS}}"
+
+      - name: CLeaning NX cache
+        run: |
+          gh extension install actions/gh-actions-cache
+          gh actions-cache delete "${{ runner.os }}-nx-" --confirm
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}        
+    
+      - name: Caching nx
+        uses: actions/cache/save@v3
+        with:
+            path: |
+              .nx
+            key: ${{ runner.os }}-nx-
