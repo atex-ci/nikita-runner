@@ -57,6 +57,8 @@ jobs:
         run: |
           gh extension install actions/gh-actions-cache
           gh actions-cache delete "${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}" --confirm
+        env:
+          GH_TOKEN: ${{ secrets.GH_PASSWORD }}          
       - name: Cache pnpm dependencies
         id: cache-dependencies-save
         uses: actions/cache/save@v3
