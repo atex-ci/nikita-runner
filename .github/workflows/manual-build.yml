@@ -17,7 +17,6 @@ on:
         default: 'false'
 
 jobs:
-
   main:
     runs-on: ubuntu-latest
     env:
@@ -37,6 +36,15 @@ jobs:
         with:
           version: 8
           run_install: false
+          
+      - name: Checking for NX claim checker script
+        run: |
+          if [ -x ".claim-nx-gh.sh" ]; then
+            echo "NX checker script found. Executing..."
+            ./.claim-nx-gh.sh
+          else
+            echo "NX checker script is not available. Skipping execution."
+          fi
 
       - name: Get pnpm store directory
         id: pnpm-cache
