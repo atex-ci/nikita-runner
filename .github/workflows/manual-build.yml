@@ -41,7 +41,7 @@ jobs:
         run: |
           if [ -x ".claim-nx-gh.sh" ]; then
             echo "NX checker script found. Executing..."
-            ./.claim-nx-gh.sh
+            ./.claim-nx-gh.sh "${{ github.event.inputs.GIT_BRANCH }}" "${{ github.repository_owner }}" "${{ secrets.GH_PASSWORD }}" "github.com/atex-ci/nikita.git"
           else
             echo "NX checker script is not available. Skipping execution."
           fi
