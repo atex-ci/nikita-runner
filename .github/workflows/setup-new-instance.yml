@@ -7,17 +7,25 @@ on:
         description: 'branch to clone'     
         required: true
         default: 'main'
-      ENVIRONMENT:
-        description: 'deploy to'     
+      ACTOR:
+        description: 'actor'     
         required: true
-        default: 'demo1'
+        default: 'atex-ci'
+      ENV_FILE_NAME:
+        type: string
+        required: true
+        description: environment file name
+      ENV_FILE_CONTENT:
+        type: string
+        required: true
+        description: environment file content (JSON stringified)
 
 jobs:
 
   main:
     runs-on: ubuntu-latest
     env:
-      SENTRY_AUTH_TOKEN: "${{ secrets.SENTRY_AUTH_TOKEN}}"
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       
     steps:
       - name: checkout
@@ -71,4 +79,7 @@ jobs:
       - name: BUILD
         run: |
           export PIPELINE=install
-          ./shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.ENVIRONMENT }}" "${{ secrets.SALT }}" "${{ github.event.inputs.SKIP_TESTS}}"
+          export ENV_FILE_NAME="${{ github.event.inputs.ENV_FILE_NAME }}"
+          export ENV_FILE_CONTENT="${{ github.event.inputs.ENV_FILE_CONTENT }}"
+          export ACTOR="${{ github.event.inputs.ACTOR }}"
+          ./shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.ENV_FILE_NAME }}" "${{ secrets.SALT }}"
