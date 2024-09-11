@@ -23,6 +23,7 @@ jobs:
       - name: checkout
         run: |
           pwd
+          echo "GIT_BRANCH is ${{ github.event.inputs.GIT_BRANCH}}"
           git config --global http.sslverify false
           git clone --branch "${{ github.event.inputs.GIT_BRANCH}}" "https://${{ github.repository_owner }}:${{ secrets.GH_PASSWORD }}@github.com/atex-ci/nikita.git" .
           ls -la
