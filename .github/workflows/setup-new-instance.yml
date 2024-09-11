@@ -26,6 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      LOGTAIL_AUTH_TOKEN: ${{ secrets.LOGTAIL_AUTH_TOKEN }}
       
     steps:
       - name: checkout
