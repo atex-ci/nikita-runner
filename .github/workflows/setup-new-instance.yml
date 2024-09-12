@@ -27,6 +27,7 @@ jobs:
     env:
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       LOGTAIL_AUTH_TOKEN: ${{ secrets.LOGTAIL_AUTH_TOKEN }}
+      CONVOX_TOKEN: ${{ secrets.CONVOX_TOKEN }}
       
     steps:
       - name: checkout
@@ -82,5 +83,5 @@ jobs:
           export PIPELINE=install
           export ENV_FILE_NAME="${{ github.event.inputs.ENV_FILE_NAME }}"
           export ENV_FILE_CONTENT="${{ github.event.inputs.ENV_FILE_CONTENT }}"
-          export ACTOR="${{ github.event.inputs.ACTOR }}"
+          export ACTOR="${{ github.event.inputs.ACTOR }}"          
           ./shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.ENV_FILE_NAME }}" "${{ secrets.SALT }}"

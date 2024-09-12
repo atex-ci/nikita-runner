@@ -20,7 +20,9 @@ jobs:
   main:
     runs-on: ubuntu-latest
     env:
-      SENTRY_AUTH_TOKEN: "${{ secrets.SENTRY_AUTH_TOKEN}}"
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      LOGTAIL_AUTH_TOKEN: ${{ secrets.LOGTAIL_AUTH_TOKEN }}
+      CONVOX_TOKEN: ${{ secrets.CONVOX_TOKEN }}
       
     steps:
       - name: checkout
