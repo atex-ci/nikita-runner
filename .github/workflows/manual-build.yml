@@ -52,6 +52,12 @@ jobs:
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
       - name: Install dependencies
         run: pnpm install
+      - name: Update submodules
+        run: pnpm update-submodules
+      - name: Update symlinks
+        run: pnpm prebuild
+      - name: Update dependencies based on monorepo packages
+        run: pnpm install
       - name: Delete Previous Cache
         if: ${{ steps.cache-dependencies-restore.outputs.cache-hit }}
         continue-on-error: true
