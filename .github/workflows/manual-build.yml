@@ -53,7 +53,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install
       - name: Update submodules
-        run: pnpm update-submodules
+        run: |
+          sed -i -e "s|github.com|${{ github.repository_owner }}:${{ secrets.GH_PASSWORD }}@github.com|g" .gitmodules
+          pnpm update-submodules
       - name: Update symlinks
         run: pnpm prebuild
       - name: Update dependencies based on monorepo packages
