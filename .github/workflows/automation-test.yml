@@ -1,4 +1,4 @@
-name: Automation-Test-Script
+name: automation-test
 
 on:  
   workflow_dispatch:
