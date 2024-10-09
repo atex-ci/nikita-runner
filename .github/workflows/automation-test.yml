@@ -29,4 +29,4 @@ jobs:
           
       - name: BUILD
         run: |
-          ./shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" 
+          ./scripts/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" 
