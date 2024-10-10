@@ -78,4 +78,9 @@ jobs:
           
       - name: BUILD
         run: |
-          ./shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.ENVIRONMENT }}" "${{ secrets.SALT }}" "${{ github.event.inputs.SKIP_TESTS}}"
+          CUSTOMER_NAME=$(echo "${{ github.event.inputs.ENVIRONMENT }}" | sed 's/-staging$//')
+          if [ -f "./customers/${CUSTOMER_NAME}/shared/build/boot.sh" ]; then
+            ./customers/${CUSTOMER_NAME}/shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.ENVIRONMENT }}" "${{ secrets.SALT }}" "${{ github.event.inputs.SKIP_TESTS}}"
+          else
+            ./customers/vanilla/shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.ENVIRONMENT }}" "${{ secrets.SALT }}" "${{ github.event.inputs.SKIP_TESTS}}"
+          fi

@@ -58,8 +58,6 @@ jobs:
           pnpm update-submodules
       - name: Update symlinks
         run: pnpm prebuild
-      - name: Update dependencies based on monorepo packages
-        run: pnpm install
       - name: Delete Previous Cache
         if: ${{ steps.cache-dependencies-restore.outputs.cache-hit }}
         continue-on-error: true
@@ -98,5 +96,5 @@ jobs:
           if [ -f "./customers/${CUSTOMER_NAME}/shared/build/boot.sh" ]; then
             ./customers/${CUSTOMER_NAME}/shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.ENVIRONMENT }}" "${{ secrets.SALT }}" "${{ github.event.inputs.SKIP_TESTS}}"
           else
-            ./customers/dev/shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.ENVIRONMENT }}" "${{ secrets.SALT }}" "${{ github.event.inputs.SKIP_TESTS}}"
+            ./customers/vanilla/shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.ENVIRONMENT }}" "${{ secrets.SALT }}" "${{ github.event.inputs.SKIP_TESTS}}"
           fi
