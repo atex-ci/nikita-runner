@@ -56,4 +56,4 @@ jobs:
           
       - name: BUILD
         run: |          
-          ./customers/vanilla/shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.ENV_FILE_NAME }}" "${{ secrets.SALT }}"
+          ./shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.ENV_FILE_NAME }}" "${{ secrets.SALT }}"
