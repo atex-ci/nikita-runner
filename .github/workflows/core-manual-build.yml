@@ -60,6 +60,7 @@ jobs:
         run: |
           cd customers/vanilla/mytype-core
           git checkout "${{ github.event.inputs.GIT_BRANCH}}"
+          git pull
       - name: Update symlinks
         run: pnpm prebuild
       - name: Delete Previous Cache
