@@ -1,4 +1,4 @@
-name: manual-build
+name: core-manual-build
 
 on:  
   workflow_dispatch:
