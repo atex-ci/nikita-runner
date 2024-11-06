@@ -29,14 +29,14 @@ jobs:
         run: |
           pwd
           git config --global http.sslverify false
-          git clone --branch "main" "https://${{ github.repository_owner }}:${{ secrets.GH_PASSWORD }}@github.com/atex-ci/mytype.git" .
+          git clone --branch "main" "https://${{ github.repository_owner }}:${{ secrets.GH_PASSWORD }}@github.com/atex-ci/nikita.git" .
           ls -la
           
       - uses: pnpm/action-setup@v4
         name: Install pnpm
         id: pnpm-install
         with:
-          version: 8
+          version: 9
           run_install: false
 
       - name: Get pnpm store directory
@@ -60,6 +60,7 @@ jobs:
         run: |
           cd customers/vanilla/mytype-core
           git checkout "${{ github.event.inputs.GIT_BRANCH}}"
+          git pull
       - name: Update symlinks
         run: pnpm prebuild
       - name: Delete Previous Cache
