@@ -55,7 +55,7 @@ jobs:
       - name: Update submodules
         run: |
           sed -i -e "s|github.com|${{ github.repository_owner }}:${{ secrets.GH_PASSWORD }}@github.com|g" .gitmodules
-          pnpm setup-submodules
+          git submodule update --init --recursive && git submodule foreach --recursive 'git reset --hard && pnpm install && pnpm setup-monorepo'
       - name: Update symlinks
         run: pnpm prebuild
       - name: Delete Previous Cache
