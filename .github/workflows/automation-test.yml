@@ -6,7 +6,7 @@ on:
       GIT_BRANCH:
         description: 'branch to clone'     
         required: true
-        default: '21Aug2024'
+        default: 'main'
     
 jobs:
   main:
