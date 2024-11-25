@@ -26,6 +26,10 @@ jobs:
         with:
           github_token: ${{ secrets.GH_PASSWORD }}
           job_name: ${{ github.job }}
+
+      - name: Ensure boot.sh is executable
+        run: chmod +x scripts/boot.sh
+
           
       - name: BUILD
         run: |
