@@ -1,4 +1,4 @@
-name: manual-build
+name: core-manual-build
 
 on:  
   workflow_dispatch:
@@ -29,7 +29,7 @@ jobs:
         run: |
           pwd
           git config --global http.sslverify false
-          git clone --branch "${{ github.event.inputs.GIT_BRANCH}}" "https://${{ github.repository_owner }}:${{ secrets.GH_PASSWORD }}@github.com/atex-ci/nikita.git" .
+          git clone --branch "main" "https://${{ github.repository_owner }}:${{ secrets.GH_PASSWORD }}@github.com/atex-ci/nikita.git" .
           ls -la
           
       - uses: pnpm/action-setup@v4
@@ -55,7 +55,12 @@ jobs:
       - name: Update submodules
         run: |
           sed -i -e "s|github.com|${{ github.repository_owner }}:${{ secrets.GH_PASSWORD }}@github.com|g" .gitmodules
-          git submodule update --init --recursive && git submodule foreach --recursive 'git reset --hard && pnpm install && pnpm setup-monorepo'
+          pnpm setup-submodules
+      - name: Switch core branch
+        run: |
+          cd customers/vanilla/mytype-core
+          git checkout "${{ github.event.inputs.GIT_BRANCH}}"
+          git pull
       - name: Update symlinks
         run: pnpm prebuild
       - name: Delete Previous Cache
@@ -92,9 +97,4 @@ jobs:
           
       - name: BUILD
         run: |
-          CUSTOMER_NAME=$(echo "${{ github.event.inputs.ENVIRONMENT }}" | sed 's/-staging$//')
-          if [ -f "./customers/${CUSTOMER_NAME}/shared/build/boot.sh" ]; then
-            ./customers/${CUSTOMER_NAME}/shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.ENVIRONMENT }}" "${{ secrets.SALT }}" "${{ github.event.inputs.SKIP_TESTS}}"
-          else
-            ./customers/vanilla/shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.ENVIRONMENT }}" "${{ secrets.SALT }}" "${{ github.event.inputs.SKIP_TESTS}}"
-          fi
+          ./customers/vanilla/mytype-core/shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.ENVIRONMENT }}" "${{ secrets.SALT }}" "${{ github.event.inputs.SKIP_TESTS}}"
