@@ -84,31 +84,8 @@ jobs:
           aws configure set aws_access_key_id "${{ secrets.AWS_ACCESS_KEY_ID }}"
           aws configure set aws_secret_access_key "${{ secrets.AWS_SECRET_ACCESS_KEY}}"
       
+      # export any variables needed for the build script before running it
       - name: BUILD
         run: |
           export GH_PASSWORD="${{ secrets.GH_PASSWORD }}"
-          export SONAR_TOKEN="${{ secrets.SONAR_TOKEN }}"
-          export SONAR_HOST_URL="${{ secrets.SONAR_HOST_URL }}"
-          export MY_SONAR_PROJECT_KEY="mytype-local"
           ./shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.ENVIRONMENT }}" "${{ secrets.SALT }}" "${{ github.event.inputs.SKIP_TESTS}}"
-
-  sonarqube:
-    name: Sonarqube Scan
-    runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.SKIP_TESTS != 'true' }}
-    permissions: read-all
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - uses: sonarsource/sonarqube-scan-action@master
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-          SONAR_SCANNER_OPTS: "-Dsonar.projectKey=mytype-local-wrong"
-      # If you wish to fail your job when the Quality Gate is red, uncomment the
-      # following lines. This would typically be used to fail a deployment.
-      # - uses: sonarsource/sonarqube-quality-gate-action@master
-      #   timeout-minutes: 5
-      #   env:
-      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
