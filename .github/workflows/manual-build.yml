@@ -84,14 +84,11 @@ jobs:
           aws configure set aws_access_key_id "${{ secrets.AWS_ACCESS_KEY_ID }}"
           aws configure set aws_secret_access_key "${{ secrets.AWS_SECRET_ACCESS_KEY}}"
       
-      # all variables exported here will be available in boot.sh
-      - name: Export Sonar Variables
-        run: |
-          echo "export SONAR_TOKEN=${{ secrets.SONAR_TOKEN }}" >> $GITHUB_ENV
-          echo "export SONAR_HOST_URL=${{ secrets.SONAR_HOST_URL }}" >> $GITHUB_ENV
-          
       - name: BUILD
         run: |
+          export SONAR_TOKEN="${{ secrets.SONAR_TOKEN }}"
+          export SONAR_HOST_URL="${{ secrets.SONAR_HOST_URL }}"
+          export SONAR_SCANNER_OPTS: "-Dsonar.projectKey=mytype-local"
           ./shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.ENVIRONMENT }}" "${{ secrets.SALT }}" "${{ github.event.inputs.SKIP_TESTS}}"
 
   sonarqube:
