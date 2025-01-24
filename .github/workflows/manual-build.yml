@@ -83,6 +83,12 @@ jobs:
         run: |
           aws configure set aws_access_key_id "${{ secrets.AWS_ACCESS_KEY_ID }}"
           aws configure set aws_secret_access_key "${{ secrets.AWS_SECRET_ACCESS_KEY}}"
+      
+      # all variables exported here will be available in boot.sh
+      - name: Export Sonar Variables
+        run: |
+          echo "export SONAR_TOKEN=${{ secrets.SONAR_TOKEN }}" >> $GITHUB_ENV
+          echo "export SONAR_HOST_URL=${{ secrets.SONAR_HOST_URL }}" >> $GITHUB_ENV
           
       - name: BUILD
         run: |
@@ -93,7 +99,6 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.SKIP_TESTS != 'true' }}
     permissions: read-all
-    continue-on-error: false
     steps:
       - uses: actions/checkout@v2
         with:
@@ -108,4 +113,4 @@ jobs:
       # - uses: sonarsource/sonarqube-quality-gate-action@master
       #   timeout-minutes: 5
       #   env:
-      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }} e
