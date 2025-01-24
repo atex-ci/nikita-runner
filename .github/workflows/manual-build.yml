@@ -88,7 +88,7 @@ jobs:
         run: |
           export SONAR_TOKEN="${{ secrets.SONAR_TOKEN }}"
           export SONAR_HOST_URL="${{ secrets.SONAR_HOST_URL }}"
-          export SONAR_SCANNER_OPTS: "-Dsonar.projectKey=mytype-local"
+          export MY_SONAR_PROJECT_KEY="mytype-local"
           ./shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.ENVIRONMENT }}" "${{ secrets.SALT }}" "${{ github.event.inputs.SKIP_TESTS}}"
 
   sonarqube:
