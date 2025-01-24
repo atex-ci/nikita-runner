@@ -86,6 +86,7 @@ jobs:
       
       - name: BUILD
         run: |
+          export GH_PASSWORD="${{ secrets.GH_PASSWORD }}"
           export SONAR_TOKEN="${{ secrets.SONAR_TOKEN }}"
           export SONAR_HOST_URL="${{ secrets.SONAR_HOST_URL }}"
           export MY_SONAR_PROJECT_KEY="mytype-local"
@@ -110,4 +111,4 @@ jobs:
       # - uses: sonarsource/sonarqube-quality-gate-action@master
       #   timeout-minutes: 5
       #   env:
-      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }} e
+      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
