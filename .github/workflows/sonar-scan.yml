@@ -14,7 +14,7 @@ on:
       PROJECT_KEY:
         description: 'Sonarqube Project Key'     
         required: true
-        default: 'mytype-local'
+        default: 'mytype'
 
 jobs:
   sonarqube:
