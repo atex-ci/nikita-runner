@@ -2,7 +2,11 @@ name: sonar-scan
 
 on:  
   workflow_dispatch:
-    inputs:
+    inputs:      
+      REPOSITORY:
+        description: 'Repository to analyze (e.g. nikita)'
+        default: 'nikita' #
+        type: string
       GIT_BRANCH:
         description: 'branch to clone'     
         required: true
@@ -20,12 +24,16 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
+          repository: ${{ github.repository_owner }}/${{ inputs.REPOSITORY }}
+          ref: ${{ inputs.GIT_BRANCH }}
           fetch-depth: 0
+          token: ${{ secrets.GH_PASSWORD }}
+
       - uses: sonarsource/sonarqube-scan-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-          SONAR_SCANNER_OPTS: "-Dsonar.projectKey=${{ inputs.PROJECT_KEY }} -Dsonar.sources=. -Dsonar.scm.provider=git -Dsonar.scm.forceReloadAll=true"
+          SONAR_SCANNER_OPTS: "-Dsonar.projectKey=${{ inputs.PROJECT_KEY }}"
       # If you wish to fail your job when the Quality Gate is red, uncomment the
       # following lines. This would typically be used to fail a deployment.
       # - uses: sonarsource/sonarqube-quality-gate-action@master
