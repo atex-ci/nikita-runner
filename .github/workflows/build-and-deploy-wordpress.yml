@@ -33,9 +33,7 @@ jobs:
           echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
 
       - name: Setup monorepo
-        run: |
-          cd nikita
-          pnpm setup-monorepo
+        run: pnpm setup-monorepo
 
       - name: Create artifact
         run: |
