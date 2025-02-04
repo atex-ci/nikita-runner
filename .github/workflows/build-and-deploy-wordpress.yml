@@ -2,6 +2,11 @@ name: Build and Deploy WordPress Plugin in dev environment
 
 on:  
   workflow_dispatch:
+    inputs:
+      GIT_BRANCH:
+        description: 'branch to clone'     
+        required: true
+        default: 'main'
 
 jobs:
   build:
