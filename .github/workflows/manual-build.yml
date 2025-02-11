@@ -91,7 +91,7 @@ jobs:
           ./shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.ENVIRONMENT }}" "${{ secrets.SALT }}" "${{ github.event.inputs.SKIP_TESTS}}"
 
       - name: DEPLOY DEV-WP
-        if: ${{ github.event.inputs.ENVIRONMENT == 'dev' }}
+        if: ${{ github.event.inputs.ENVIRONMENT == 'dev' && github.event.inputs.GIT_BRANCH == 'main' }}
         run: |
           export GH_PASSWORD="${{ secrets.GH_PASSWORD }}"
           ./shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" "dev-wp" "${{ secrets.SALT }}" "true"
