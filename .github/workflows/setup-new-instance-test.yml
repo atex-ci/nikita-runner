@@ -1,0 +1,84 @@
+name: setup-new-instance
+
+on:  
+  workflow_dispatch:
+    inputs:
+      GIT_BRANCH:
+        description: 'branch to clone'     
+        required: true
+        default: 'main'
+      ACTOR:
+        description: 'actor'     
+        required: true
+        default: 'atex-ci'
+      ENV_FILE_NAME:
+        type: string
+        required: true
+        description: environment file name
+      ENV_FILE_CONTENT:
+        type: string
+        required: true
+        description: environment file content (JSON stringified)
+
+jobs:
+
+  main:
+    runs-on: ubuntu-latest
+    env:
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      LOGTAIL_AUTH_TOKEN: ${{ secrets.LOGTAIL_AUTH_TOKEN }}
+      CONVOX_TOKEN: ${{ secrets.CONVOX_TOKEN }}
+      PEM_DEV_EC2_AURORA_BROWSER: ${{ secrets.PEM_DEV_EC2_AURORA_BROWSER }}
+      PEM_STAGING_EC2_AURORA_BROWSER: ${{ secrets.PEM_STAGING_EC2_AURORA_BROWSER }}
+      AURORA_DEV_ADMIN_PASSWORD: ${{ secrets.AURORA_DEV_ADMIN_PASSWORD }}
+      AURORA_STAGING_ADMIN_PASSWORD: ${{ secrets.AURORA_STAGING_ADMIN_PASSWORD }}
+      PIPELINE: install
+      ENV_FILE_NAME: ${{ github.event.inputs.ENV_FILE_NAME }}
+      ENV_FILE_CONTENT: ${{ github.event.inputs.ENV_FILE_CONTENT }}
+      ACTOR: ${{ github.event.inputs.ACTOR }}
+
+      
+    steps:
+      - name: checkout
+        run: |
+          pwd
+          echo "GIT_BRANCH is ${{ github.event.inputs.GIT_BRANCH}}"
+          git config --global http.sslverify false
+          git clone --branch "${{ github.event.inputs.GIT_BRANCH}}" "https://${{ github.repository_owner }}:${{ secrets.GH_PASSWORD }}@github.com/atex-ci/nikita.git" .
+          ls -la
+
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        id: pnpm-install
+        with:
+          version: 9
+          run_install: false
+  
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+      - name: Restore cached pnpm dependencies
+        id: cache-dependencies-restore
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Get Current Job Log URL
+        uses: Tiryoh/gha-jobid-action@v0
+        id: jobs
+        with:
+          github_token: ${{ secrets.GH_PASSWORD }}
+          job_name: ${{ github.job }}
+      
+      - name: Setup debug session
+        uses: mxschmitt/action-tmate@v3
+
+      - name: BUILD
+        run: |          
+          ./shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.ENV_FILE_NAME }}" "${{ secrets.SALT }}"
