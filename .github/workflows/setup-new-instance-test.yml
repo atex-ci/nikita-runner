@@ -1,4 +1,4 @@
-name: setup-new-instance
+name: setup-new-instance-test
 
 on:  
   workflow_dispatch:
