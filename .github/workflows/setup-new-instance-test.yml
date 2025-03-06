@@ -36,8 +36,8 @@ jobs:
       ENV_FILE_NAME: ${{ github.event.inputs.ENV_FILE_NAME }}
       ENV_FILE_CONTENT: ${{ github.event.inputs.ENV_FILE_CONTENT }}
       ACTOR: ${{ github.event.inputs.ACTOR }}
-      DEFAULT_AWS_ACCESS_KEY_ID: "${{ secrets.DEFAULT_AWS_ACCESS_KEY_ID }}"
-      DEFAULT_AWS_SECRET_ACCESS_KEY: "${{ secrets.DEFAULT_AWS_SECRET_ACCESS_KEY }}" 
+      AWS_ACCESS_KEY_ID: "${{ secrets.DEFAULT_AWS_ACCESS_KEY_ID }}"
+      AWS_SECRET_ACCESS_KEY: "${{ secrets.DEFAULT_AWS_SECRET_ACCESS_KEY }}" 
 
       
     steps:
