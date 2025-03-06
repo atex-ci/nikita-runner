@@ -36,6 +36,8 @@ jobs:
       ENV_FILE_NAME: ${{ github.event.inputs.ENV_FILE_NAME }}
       ENV_FILE_CONTENT: ${{ github.event.inputs.ENV_FILE_CONTENT }}
       ACTOR: ${{ github.event.inputs.ACTOR }}
+      DEFAULT_AWS_ACCESS_KEY_ID: "${{ secrets.DEFAULT_AWS_ACCESS_KEY_ID }}"
+      DEFAULT_AWS_SECRET_ACCESS_KEY: "${{ secrets.DEFAULT_AWS_SECRET_ACCESS_KEY }}" 
 
       
     steps:
@@ -80,7 +82,5 @@ jobs:
         uses: mxschmitt/action-tmate@v3
 
       - name: BUILD
-        run: |
-          export DEFAULT_AWS_ACCESS_KEY_ID="${{ secrets.DEFAULT_AWS_ACCESS_KEY_ID }}"
-          export DEFAULT_AWS_SECRET_ACCESS_KEY="${{ secrets.DEFAULT_AWS_SECRET_ACCESS_KEY }}"     
+        run: |    
           ./shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.ENV_FILE_NAME }}" "${{ secrets.SALT }}"
