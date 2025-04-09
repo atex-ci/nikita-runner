@@ -1,5 +1,4 @@
-name: Update Deploy Status
-
+name: update-deploy-status
 on:
   workflow_dispatch:
     inputs:

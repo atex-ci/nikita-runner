@@ -1,4 +1,4 @@
-name: Multi Deploy
+name: multi-deploy
 
 on:
   workflow_dispatch:
