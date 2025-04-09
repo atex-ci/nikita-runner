@@ -1,4 +1,4 @@
-name: multi-deploy
+name: Multi Deploy
 
 on:
   workflow_dispatch:
@@ -71,30 +71,24 @@ jobs:
             sleep 5
             echo "Deployment of $ENV completed!"
             
-            # Update the gist by calling the update-deploy-status workflow directly
-            # Using GitHub REST API instead of gh CLI
-            echo "Updating deployment status in gist..."
-            
-            # Prepare the JSON payload for the workflow dispatch
-            PAYLOAD=$(cat << EOF
-            {
+            # Create payload file for workflow dispatch
+            echo '{
               "ref": "${{ github.ref_name }}",
               "inputs": {
-                "completed_deploys": "$COMPLETED_STR",
-                "pending_deploys": "$PENDING_STR",
-                "branch": "$BRANCH",
-                "git_hash": "$GIT_HASH"
+                "completed_deploys": "'$COMPLETED_STR'",
+                "pending_deploys": "'$PENDING_STR'",
+                "branch": "'$BRANCH'",
+                "git_hash": "'$GIT_HASH'"
               }
-            }
-            EOF
-            )
+            }' > payload.json
             
-            # Call the workflow using curl
+            # Update the gist by calling the update-deploy-status workflow
+            echo "Updating deployment status in gist..."
             curl -s -X POST \
               -H "Authorization: token $MY_GITHUB_TOKEN" \
               -H "Accept: application/vnd.github.v3+json" \
               "https://api.github.com/repos/${{ github.repository }}/actions/workflows/update-deploy-status.yml/dispatches" \
-              -d "$PAYLOAD"
+              -d @payload.json
             
             # Wait briefly for the workflow to start
             sleep 2
