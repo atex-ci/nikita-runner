@@ -1,0 +1,85 @@
+name: Multi Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      env_list:
+        description: 'customer ids to deploy (comma-separated, no spaces)'
+        required: true
+        default: ''
+      branch:
+        description: 'Git branch'
+        required: true
+        default: 'main'
+      git_hash:
+        description: 'Git commit hash'
+        required: true
+        default: ''
+
+jobs:
+  deploy-sequentially:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Process deployments sequentially
+        id: deploy-loop
+        run: |
+          # Get the list of environments
+          ENV_LIST="${{ github.event.inputs.env_list }}"
+          BRANCH="${{ github.event.inputs.branch }}"
+          GIT_HASH="${{ github.event.inputs.git_hash }}"
+          
+          # Split into array
+          IFS=',' read -ra ENVS <<< "$ENV_LIST"
+          
+          # Initialize arrays for completed and pending
+          COMPLETED=()
+          PENDING=("${ENVS[@]}")
+          
+          echo "Starting sequential deployments of ${#ENVS[@]} environments"
+          echo "Full environment list: $ENV_LIST"
+          
+          # Process each environment
+          for ENV in "${ENVS[@]}"; do
+            echo "===== Processing environment: $ENV ====="
+            
+            # Remove current env from pending and add to completed
+            COMPLETED+=("$ENV")
+            
+            # Rebuild the pending list without the current env
+            NEW_PENDING=()
+            for PEND in "${PENDING[@]}"; do
+              if [ "$PEND" != "$ENV" ]; then
+                NEW_PENDING+=("$PEND")
+              fi
+            done
+            PENDING=("${NEW_PENDING[@]}")
+            
+            # Convert arrays to comma-separated strings
+            COMPLETED_STR=$(IFS=,; echo "${COMPLETED[*]}")
+            PENDING_STR=$(IFS=,; echo "${PENDING[*]}")
+            
+            echo "Completed: $COMPLETED_STR"
+            echo "Pending: $PENDING_STR"
+            
+            # Simulate deployment time
+            echo "Deploying $ENV - please wait 5 seconds..."
+            sleep 5
+            echo "Deployment of $ENV completed!"
+            
+            # Update the gist by calling the update-deploy-status workflow
+            echo "Updating deployment status in gist..."
+            gh workflow run update-deploy-status.yml \
+              -f completed_deploys="$COMPLETED_STR" \
+              -f pending_deploys="$PENDING_STR" \
+              -f branch="$BRANCH" \
+              -f git_hash="$GIT_HASH"
+            
+            # Wait briefly for the workflow to start
+            sleep 2
+            
+            echo "Status update triggered for environment: $ENV"
+          done
+          
+          echo "All deployments have been completed!"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PASSWORD }}

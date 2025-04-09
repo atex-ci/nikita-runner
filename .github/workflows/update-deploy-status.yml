@@ -1,0 +1,56 @@
+name: Update Deploy Status
+
+on:
+  workflow_dispatch:
+    inputs:
+      completed_deploys:
+        description: 'Completed deploys (comma-separated)'
+        required: false
+        default: ''
+      pending_deploys:
+        description: 'Pending deploys (comma-separated)'
+        required: false
+        default: ''
+      branch:
+        description: 'Git branch'
+        required: false
+        default: 'main'
+      git_hash:
+        description: 'Git commit hash'
+        required: false
+        default: ''
+
+jobs:
+  update-gist:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create deploy status content
+        id: create-content
+        run: |
+          # Clean input values (remove spaces after commas)
+          COMPLETED_DEPLOYS=$(echo "${{ github.event.inputs.completed_deploys }}" | sed 's/, */,/g')
+          PENDING_DEPLOYS=$(echo "${{ github.event.inputs.pending_deploys }}" | sed 's/, */,/g')
+          
+          # Create the JSON content file
+          echo '{
+            "last_updated": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",
+            "branch": "${{ github.event.inputs.branch }}",
+            "git_hash": "${{ github.event.inputs.git_hash }}",
+            "completed": ['$([ -z "$COMPLETED_DEPLOYS" ] || echo "\"$(echo $COMPLETED_DEPLOYS | sed 's/,/\",\"/g')\"")'],
+            "pending": ['$([ -z "$PENDING_DEPLOYS" ] || echo "\"$(echo $PENDING_DEPLOYS | sed 's/,/\",\"/g')\"")']
+          }' > deploy-status.json
+          
+          # Format the JSON nicely
+          jq . deploy-status.json > temp.json && mv temp.json deploy-status.json
+          
+          # Display the content for debugging
+          echo "Generated JSON content:"
+          cat deploy-status.json
+
+      - name: Update GitHub Gist
+        uses: exuanbo/actions-deploy-gist@v1
+        with:
+          token: ${{ secrets.GH_PASSWORD }}
+          gist_id: fb299be02db11459541d244f9f225484
+          gist_description: "Deployment Status Tracker"
+          file_path: deploy-status.json
