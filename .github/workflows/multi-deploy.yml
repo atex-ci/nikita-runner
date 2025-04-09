@@ -1,4 +1,4 @@
-name: multi-deploy
+name: Multi Deploy
 
 on:
   workflow_dispatch:
@@ -20,6 +20,20 @@ jobs:
   deploy-sequentially:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+          
+      - name: Setup GitHub CLI
+        run: |
+          # Ensure GitHub CLI is authenticated
+          echo $GITHUB_TOKEN > gh_token.txt
+          gh auth login --with-token < gh_token.txt
+          rm gh_token.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PASSWORD }}
+      
       - name: Process deployments sequentially
         id: deploy-loop
         run: |
@@ -68,11 +82,14 @@ jobs:
             
             # Update the gist by calling the update-deploy-status workflow
             echo "Updating deployment status in gist..."
+            # Use --repo flag to specify the repository explicitly
             gh workflow run update-deploy-status.yml \
+              --repo ${{ github.repository }} \
               -f completed_deploys="$COMPLETED_STR" \
               -f pending_deploys="$PENDING_STR" \
               -f branch="$BRANCH" \
-              -f git_hash="$GIT_HASH"
+              -f git_hash="$GIT_HASH" \
+              -r ${{ github.ref_name }}
             
             # Wait briefly for the workflow to start
             sleep 2
