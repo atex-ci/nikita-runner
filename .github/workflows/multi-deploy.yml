@@ -81,6 +81,8 @@ jobs:
                 "git_hash": "'$GIT_HASH'"
               }
             }' > payload.json
+
+            cat payload.json
             
             # Update the gist by calling the update-deploy-status workflow
             echo "Updating deployment status in gist..."
