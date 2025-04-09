@@ -1,4 +1,4 @@
-name: multi-deploy
+name: Multi Deploy
 
 on:
   workflow_dispatch:
@@ -24,15 +24,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 1
-          
-      - name: Setup GitHub CLI
-        run: |
-          # Ensure GitHub CLI is authenticated
-          echo $GITHUB_TOKEN > gh_token.txt
-          gh auth login --with-token < gh_token.txt
-          rm gh_token.txt
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_PASSWORD }}
       
       - name: Process deployments sequentially
         id: deploy-loop
@@ -80,16 +71,30 @@ jobs:
             sleep 5
             echo "Deployment of $ENV completed!"
             
-            # Update the gist by calling the update-deploy-status workflow
+            # Update the gist by calling the update-deploy-status workflow directly
+            # Using GitHub REST API instead of gh CLI
             echo "Updating deployment status in gist..."
-            # Use --repo flag to specify the repository explicitly
-            gh workflow run update-deploy-status.yml \
-              --repo ${{ github.repository }} \
-              -f completed_deploys="$COMPLETED_STR" \
-              -f pending_deploys="$PENDING_STR" \
-              -f branch="$BRANCH" \
-              -f git_hash="$GIT_HASH" \
-              -r ${{ github.ref_name }}
+            
+            # Prepare the JSON payload for the workflow dispatch
+            PAYLOAD=$(cat << EOF
+            {
+              "ref": "${{ github.ref_name }}",
+              "inputs": {
+                "completed_deploys": "$COMPLETED_STR",
+                "pending_deploys": "$PENDING_STR",
+                "branch": "$BRANCH",
+                "git_hash": "$GIT_HASH"
+              }
+            }
+            EOF
+            )
+            
+            # Call the workflow using curl
+            curl -s -X POST \
+              -H "Authorization: token $MY_GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/repos/${{ github.repository }}/actions/workflows/update-deploy-status.yml/dispatches" \
+              -d "$PAYLOAD"
             
             # Wait briefly for the workflow to start
             sleep 2
@@ -99,4 +104,4 @@ jobs:
           
           echo "All deployments have been completed!"
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_PASSWORD }}
+          MY_GITHUB_TOKEN: ${{ secrets.GH_PASSWORD }}
