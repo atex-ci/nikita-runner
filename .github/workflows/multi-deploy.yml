@@ -43,10 +43,104 @@ jobs:
           echo "Starting sequential deployments of ${#ENVS[@]} environments"
           echo "Full environment list: $ENV_LIST"
           
-          # Process each environment
+          # FIRST: Update gist with all environments as pending
+          PENDING_STR=$(IFS=,; echo "${PENDING[*]}")
+          COMPLETED_STR=""
+          
+          echo "Initial update - Setting all environments as pending"
+          echo "Pending: $PENDING_STR"
+          
+          # Create payload file for initial update
+          echo '{
+            "ref": "'$BRANCH'",
+            "inputs": {
+              "completed_deploys": "'$COMPLETED_STR'",
+              "pending_deploys": "'$PENDING_STR'",
+              "branch": "'$BRANCH'",
+              "git_hash": "'$GIT_HASH'"
+            }
+          }' > initial_payload.json
+
+          cat initial_payload.json
+          
+          # Initial update of the gist
+          curl -s -X POST \
+            -H "Authorization: token $MY_GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/update-deploy-status.yml/dispatches" \
+            -d @initial_payload.json
+          
+          # Wait briefly for the initial status update
+          sleep 2
+          
+          # Process each environment sequentially
           for ENV in "${ENVS[@]}"; do
             echo "===== Processing environment: $ENV ====="
             
+            # Call manual-build workflow
+            echo "Calling manual-build for environment $ENV..."
+            
+            # Create payload for manual-build workflow
+            MANUAL_BUILD_PAYLOAD="{\"ref\":\"main\",\"inputs\":{ \"GIT_BRANCH\": \"$BRANCH\", \"ENVIRONMENT\": \"$ENV\", \"SKIP_TESTS\": \"true\" }}"
+            
+            echo "manual-build payload: $MANUAL_BUILD_PAYLOAD"
+            
+            # Call the manual-build workflow and capture the response
+            RESPONSE=$(curl -s -X POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer $MY_GITHUB_TOKEN" \
+              "https://api.github.com/repos/atex-ci/nikita-runner/actions/workflows/manual-build.yml/dispatches" \
+              -d "$MANUAL_BUILD_PAYLOAD")
+            
+            echo "manual-build triggered for environment: $ENV"
+            
+            # Wait for the workflow to complete
+            echo "Waiting for manual-build workflow to complete..."
+            
+            # Sleep a bit to make sure the workflow has been registered
+            sleep 5
+            
+            # Check workflow status every 30 seconds until complete
+            WORKFLOW_COMPLETE=false
+            MAX_ATTEMPTS=120  # Maximum wait time: 60 minutes
+            ATTEMPT=0
+            
+            while [ "$WORKFLOW_COMPLETE" = false ] && [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+              # Check if there are any manual-build workflows running
+              RUNNING_RESPONSE=$(curl -s \
+                -H "Accept: application/vnd.github+json" \
+                -H "Authorization: Bearer $MY_GITHUB_TOKEN" \
+                "https://api.github.com/repos/atex-ci/nikita-runner/actions/runs?status=in_progress")
+              
+              QUEUED_RESPONSE=$(curl -s \
+                -H "Accept: application/vnd.github+json" \
+                -H "Authorization: Bearer $MY_GITHUB_TOKEN" \
+                "https://api.github.com/repos/atex-ci/nikita-runner/actions/runs?status=queued")
+              
+              # Count running manual-builds
+              RUNNING_COUNT=$(echo "$RUNNING_RESPONSE" | grep -o '"manual-build.yml"' | wc -l)
+              QUEUED_COUNT=$(echo "$QUEUED_RESPONSE" | grep -o '"manual-build.yml"' | wc -l)
+              
+              echo "Found $RUNNING_COUNT running and $QUEUED_COUNT queued manual-build workflows"
+              
+              # If no manual-builds are running or queued, consider it complete
+              if [ $RUNNING_COUNT -eq 0 ] && [ $QUEUED_COUNT -eq 0 ]; then
+                WORKFLOW_COMPLETE=true
+                echo "No manual-build workflows running or queued. Considering build complete."
+              else
+                echo "Workflow still running. Waiting 30 seconds before checking again. Attempt $ATTEMPT of $MAX_ATTEMPTS"
+                sleep 30
+                ATTEMPT=$((ATTEMPT + 1))
+              fi
+            done
+            
+            if [ "$WORKFLOW_COMPLETE" = false ]; then
+              echo "WARNING: Timed out waiting for workflow to complete! Moving on to next environment."
+            else
+              echo "Build for $ENV completed!"
+            fi
+            
+            # Now update arrays AFTER the build is complete
             # Remove current env from pending and add to completed
             COMPLETED+=("$ENV")
             
@@ -66,10 +160,10 @@ jobs:
             echo "Completed: $COMPLETED_STR"
             echo "Pending: $PENDING_STR"
             
-            # First, update the gist with the current build status before starting the build
-            echo "Updating deployment status in gist before build..."
+            # Update the gist AFTER the build is complete
+            echo "Updating deployment status in gist after build..."
             echo '{
-              "ref": "${{ github.ref_name }}",
+              "ref": "'$BRANCH'",
               "inputs": {
                 "completed_deploys": "'$COMPLETED_STR'",
                 "pending_deploys": "'$PENDING_STR'",
@@ -91,95 +185,8 @@ jobs:
             sleep 2
             
             echo "Status update triggered for environment: $ENV"
-            
-            # Now call manual-build workflow
-            echo "Calling manual-build for environment $ENV..."
-            
-            # Create payload for manual-build workflow
-            MANUAL_BUILD_PAYLOAD="{\"ref\":\"main\",\"inputs\":{ \"GIT_BRANCH\": \"$BRANCH\", \"ENVIRONMENT\": \"$ENV\", \"SKIP_TESTS\": \"true\" }}"
-            
-            echo "manual-build payload: $MANUAL_BUILD_PAYLOAD"
-            
-            # Call the manual-build workflow and capture the response
-            RESPONSE=$(curl -s -X POST \
-              -H "Accept: application/vnd.github+json" \
-              -H "Authorization: Bearer $MY_GITHUB_TOKEN" \
-              "https://api.github.com/repos/atex-ci/nikita-runner/actions/workflows/manual-build.yml/dispatches" \
-              -d "$MANUAL_BUILD_PAYLOAD")
-            
-            echo "manual-build trigger response: $RESPONSE"
-            echo "manual-build triggered for environment: $ENV"
-            
-            # Wait for the workflow to complete
-            echo "Waiting for manual-build workflow to complete..."
-            
-            # First, we need to get the workflow runs
-            # Sleep a bit to make sure the workflow has been registered
-            sleep 5
-            
-            # Check workflow status every 30 seconds until complete
-            WORKFLOW_COMPLETE=false
-            MAX_ATTEMPTS=60  # Maximum wait time: 30 minutes
-            ATTEMPT=0
-            
-            while [ "$WORKFLOW_COMPLETE" = false ] && [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-              # Get the latest run of the workflow
-              RUNS_RESPONSE=$(curl -s \
-                -H "Accept: application/vnd.github+json" \
-                -H "Authorization: Bearer $MY_GITHUB_TOKEN" \
-                "https://api.github.com/repos/atex-ci/nikita-runner/actions/workflows/manual-build.yml/runs?branch=main&per_page=5")
-              
-              # Extract the status of the latest run (the first one in the list)
-              # Using grep and cut to extract the conclusion value
-              # This assumes jq is not available on the runner
-              RUN_STATUS=$(echo "$RUNS_RESPONSE" | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4)
-              RUN_CONCLUSION=$(echo "$RUNS_RESPONSE" | grep -o '"conclusion":"[^"]*"' | head -1 | cut -d'"' -f4)
-              
-              echo "Current workflow status: $RUN_STATUS, conclusion: $RUN_CONCLUSION"
-              
-              # Check if the workflow has completed
-              if [ "$RUN_STATUS" = "completed" ]; then
-                WORKFLOW_COMPLETE=true
-                echo "Workflow completed with conclusion: $RUN_CONCLUSION"
-                
-                # Check if the workflow failed
-                if [ "$RUN_CONCLUSION" != "success" ]; then
-                  echo "WARNING: Workflow did not complete successfully! Conclusion: $RUN_CONCLUSION"
-                fi
-              else
-                echo "Workflow still running. Waiting 30 seconds before checking again. Attempt $ATTEMPT of $MAX_ATTEMPTS"
-                sleep 30
-                ATTEMPT=$((ATTEMPT + 1))
-              fi
-            done
-            
-            if [ "$WORKFLOW_COMPLETE" = false ]; then
-              echo "WARNING: Timed out waiting for workflow to complete! Moving on to next environment."
-            fi
           done
           
-          # Final update to ensure no pending builds in the gist
-          echo "Performing final status update to clear any pending builds..."
-          
-          # Create payload file for final update
-          echo '{
-            "ref": "${{ github.ref_name }}",
-            "inputs": {
-              "completed_deploys": "'$COMPLETED_STR'",
-              "pending_deploys": "",
-              "branch": "'$BRANCH'",
-              "git_hash": "'$GIT_HASH'"
-            }
-          }' > final_payload.json
-
-          cat final_payload.json
-          
-          # Final update of the gist
-          curl -s -X POST \
-            -H "Authorization: token $MY_GITHUB_TOKEN" \
-            -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/update-deploy-status.yml/dispatches" \
-            -d @final_payload.json
           
           echo "All deployments have been completed and status has been finalized!"
         env:
