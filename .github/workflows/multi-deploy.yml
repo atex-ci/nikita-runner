@@ -98,6 +98,7 @@ jobs:
             echo "Waiting for manual-build workflow to complete..."
             
             # Sleep a bit to make sure the workflow has been registered
+            echo "Sleeping for 50 seconds to allow workflow to start..."
             sleep 50
             
             # Check workflow status every 30 seconds until complete
@@ -117,9 +118,15 @@ jobs:
                 -H "Authorization: Bearer $MY_GITHUB_TOKEN" \
                 "https://api.github.com/repos/atex-ci/nikita-runner/actions/runs?status=queued")
               
+              echo "running response: $RUNNING_RESPONSE"
+              echo "queued response: $QUEUED_RESPONSE"
+
               # Count running manual-builds
               RUNNING_COUNT=$(echo "$RUNNING_RESPONSE" | grep -o '"manual-build.yml"' | wc -l)
               QUEUED_COUNT=$(echo "$QUEUED_RESPONSE" | grep -o '"manual-build.yml"' | wc -l)
+
+              echo "Running count: $RUNNING_COUNT"
+              echo "Queued count: $QUEUED_COUNT"
               
               echo "Found $RUNNING_COUNT running and $QUEUED_COUNT queued manual-build workflows"
               
