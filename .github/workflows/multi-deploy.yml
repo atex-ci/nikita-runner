@@ -66,12 +66,72 @@ jobs:
             echo "Completed: $COMPLETED_STR"
             echo "Pending: $PENDING_STR"
             
-            # Simulate deployment time
-            echo "Deploying $ENV - please wait 5 seconds..."
-            sleep 5
-            echo "Deployment of $ENV completed!"
+            # Call manual-build workflow instead of using sleep
+            echo "Calling manual-build for environment $ENV..."
             
-            # Create payload file for workflow dispatch
+            # Create payload for manual-build workflow
+            MANUAL_BUILD_PAYLOAD="{\"ref\":\"main\",\"inputs\":{ \"GIT_BRANCH\": \"$BRANCH\", \"ENVIRONMENT\": \"$ENV\", \"SKIP_TESTS\": \"false\" }}"
+            
+            echo "manual-build payload: $MANUAL_BUILD_PAYLOAD"
+            
+            # Call the manual-build workflow and capture the response
+            RESPONSE=$(curl -s -X POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer $MY_GITHUB_TOKEN" \
+              "https://api.github.com/repos/atex-ci/nikita-runner/actions/workflows/manual-build.yml/dispatches" \
+              -d "$MANUAL_BUILD_PAYLOAD")
+            
+            echo "manual-build trigger response: $RESPONSE"
+            echo "manual-build triggered for environment: $ENV"
+            
+            # Wait for the workflow to complete
+            echo "Waiting for manual-build workflow to complete..."
+            
+            # First, we need to get the workflow runs
+            # Sleep a bit to make sure the workflow has been registered
+            sleep 5
+            
+            # Check workflow status every 30 seconds until complete
+            WORKFLOW_COMPLETE=false
+            MAX_ATTEMPTS=60  # Maximum wait time: 30 minutes
+            ATTEMPT=0
+            
+            while [ "$WORKFLOW_COMPLETE" = false ] && [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+              # Get the latest run of the workflow
+              RUNS_RESPONSE=$(curl -s \
+                -H "Accept: application/vnd.github+json" \
+                -H "Authorization: Bearer $MY_GITHUB_TOKEN" \
+                "https://api.github.com/repos/atex-ci/nikita-runner/actions/workflows/manual-build.yml/runs?branch=main&per_page=5")
+              
+              # Extract the status of the latest run (the first one in the list)
+              # Using grep and cut to extract the conclusion value
+              # This assumes jq is not available on the runner
+              RUN_STATUS=$(echo "$RUNS_RESPONSE" | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4)
+              RUN_CONCLUSION=$(echo "$RUNS_RESPONSE" | grep -o '"conclusion":"[^"]*"' | head -1 | cut -d'"' -f4)
+              
+              echo "Current workflow status: $RUN_STATUS, conclusion: $RUN_CONCLUSION"
+              
+              # Check if the workflow has completed
+              if [ "$RUN_STATUS" = "completed" ]; then
+                WORKFLOW_COMPLETE=true
+                echo "Workflow completed with conclusion: $RUN_CONCLUSION"
+                
+                # Check if the workflow failed
+                if [ "$RUN_CONCLUSION" != "success" ]; then
+                  echo "WARNING: Workflow did not complete successfully! Conclusion: $RUN_CONCLUSION"
+                fi
+              else
+                echo "Workflow still running. Waiting 30 seconds before checking again. Attempt $ATTEMPT of $MAX_ATTEMPTS"
+                sleep 30
+                ATTEMPT=$((ATTEMPT + 1))
+              fi
+            done
+            
+            if [ "$WORKFLOW_COMPLETE" = false ]; then
+              echo "WARNING: Timed out waiting for workflow to complete! Moving on to next environment."
+            fi
+            
+            # Create payload file for update-deploy-status workflow
             echo '{
               "ref": "${{ github.ref_name }}",
               "inputs": {
@@ -92,7 +152,7 @@ jobs:
               "https://api.github.com/repos/${{ github.repository }}/actions/workflows/update-deploy-status.yml/dispatches" \
               -d @payload.json
             
-            # Wait briefly for the workflow to start
+            # Wait briefly for the status update workflow to start
             sleep 2
             
             echo "Status update triggered for environment: $ENV"
