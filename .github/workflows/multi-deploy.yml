@@ -122,8 +122,8 @@ jobs:
               echo "queued response: $QUEUED_RESPONSE"
 
               # Count running manual-builds
-              RUNNING_COUNT=$(echo "$RUNNING_RESPONSE" | grep -o '"manual-build.yml"' | wc -l)
-              QUEUED_COUNT=$(echo "$QUEUED_RESPONSE" | grep -o '"manual-build.yml"' | wc -l)
+              RUNNING_COUNT=$(echo "$RUNNING_RESPONSE" | grep -o '"manual-build"' | wc -l)
+              QUEUED_COUNT=$(echo "$QUEUED_RESPONSE" | grep -o '"manual-build"' | wc -l)
 
               echo "Running count: $RUNNING_COUNT"
               echo "Queued count: $QUEUED_COUNT"
