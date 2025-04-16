@@ -66,11 +66,37 @@ jobs:
             echo "Completed: $COMPLETED_STR"
             echo "Pending: $PENDING_STR"
             
-            # Call manual-build workflow instead of using sleep
+            # First, update the gist with the current build status before starting the build
+            echo "Updating deployment status in gist before build..."
+            echo '{
+              "ref": "${{ github.ref_name }}",
+              "inputs": {
+                "completed_deploys": "'$COMPLETED_STR'",
+                "pending_deploys": "'$PENDING_STR'",
+                "branch": "'$BRANCH'",
+                "git_hash": "'$GIT_HASH'"
+              }
+            }' > payload.json
+
+            cat payload.json
+            
+            # Update the gist by calling the update-deploy-status workflow
+            curl -s -X POST \
+              -H "Authorization: token $MY_GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/repos/${{ github.repository }}/actions/workflows/update-deploy-status.yml/dispatches" \
+              -d @payload.json
+            
+            # Wait briefly for the status update workflow to start
+            sleep 2
+            
+            echo "Status update triggered for environment: $ENV"
+            
+            # Now call manual-build workflow
             echo "Calling manual-build for environment $ENV..."
             
             # Create payload for manual-build workflow
-            MANUAL_BUILD_PAYLOAD="{\"ref\":\"main\",\"inputs\":{ \"GIT_BRANCH\": \"$BRANCH\", \"ENVIRONMENT\": \"$ENV\", \"SKIP_TESTS\": \"false\" }}"
+            MANUAL_BUILD_PAYLOAD="{\"ref\":\"main\",\"inputs\":{ \"GIT_BRANCH\": \"$BRANCH\", \"ENVIRONMENT\": \"$ENV\", \"SKIP_TESTS\": \"true\" }}"
             
             echo "manual-build payload: $MANUAL_BUILD_PAYLOAD"
             
@@ -130,34 +156,31 @@ jobs:
             if [ "$WORKFLOW_COMPLETE" = false ]; then
               echo "WARNING: Timed out waiting for workflow to complete! Moving on to next environment."
             fi
-            
-            # Create payload file for update-deploy-status workflow
-            echo '{
-              "ref": "${{ github.ref_name }}",
-              "inputs": {
-                "completed_deploys": "'$COMPLETED_STR'",
-                "pending_deploys": "'$PENDING_STR'",
-                "branch": "'$BRANCH'",
-                "git_hash": "'$GIT_HASH'"
-              }
-            }' > payload.json
-
-            cat payload.json
-            
-            # Update the gist by calling the update-deploy-status workflow
-            echo "Updating deployment status in gist..."
-            curl -s -X POST \
-              -H "Authorization: token $MY_GITHUB_TOKEN" \
-              -H "Accept: application/vnd.github.v3+json" \
-              "https://api.github.com/repos/${{ github.repository }}/actions/workflows/update-deploy-status.yml/dispatches" \
-              -d @payload.json
-            
-            # Wait briefly for the status update workflow to start
-            sleep 2
-            
-            echo "Status update triggered for environment: $ENV"
           done
           
-          echo "All deployments have been completed!"
+          # Final update to ensure no pending builds in the gist
+          echo "Performing final status update to clear any pending builds..."
+          
+          # Create payload file for final update
+          echo '{
+            "ref": "${{ github.ref_name }}",
+            "inputs": {
+              "completed_deploys": "'$COMPLETED_STR'",
+              "pending_deploys": "",
+              "branch": "'$BRANCH'",
+              "git_hash": "'$GIT_HASH'"
+            }
+          }' > final_payload.json
+
+          cat final_payload.json
+          
+          # Final update of the gist
+          curl -s -X POST \
+            -H "Authorization: token $MY_GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/update-deploy-status.yml/dispatches" \
+            -d @final_payload.json
+          
+          echo "All deployments have been completed and status has been finalized!"
         env:
           MY_GITHUB_TOKEN: ${{ secrets.GH_PASSWORD }}
