@@ -98,7 +98,7 @@ jobs:
             echo "Waiting for manual-build workflow to complete..."
             
             # Sleep a bit to make sure the workflow has been registered
-            sleep 5
+            sleep 50
             
             # Check workflow status every 30 seconds until complete
             WORKFLOW_COMPLETE=false
