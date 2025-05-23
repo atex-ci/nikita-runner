@@ -128,7 +128,10 @@ jobs:
 
           NVD_API_FLAG=""
           if [ ! -z "${{ secrets.NVD_API_KEY }}" ]; then
+            echo "NVD API key is set"
             NVD_API_FLAG="--nvdApiKey ${{ secrets.NVD_API_KEY }}"
+          else
+            echo "NVD API key is not set"
           fi
           
           ./dependency-check/bin/dependency-check.sh \
