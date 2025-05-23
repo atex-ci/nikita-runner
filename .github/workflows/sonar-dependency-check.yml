@@ -94,28 +94,28 @@ jobs:
           sudo mv "sonar-scanner-${SONAR_SCANNER_VERSION}-linux" /opt/sonar-scanner
           sudo ln -s /opt/sonar-scanner/bin/sonar-scanner /usr/local/bin/sonar-scanner
 
-      # Cache OWASP Dependency Check - UPDATED FOR OFFLINE MODE
+      # Cache OWASP Dependency Check - USING STABLE VERSION
       - name: Cache OWASP Dependency Check
         uses: actions/cache@v3
         with:
           path: |
             dependency-check
             ~/.gradle/dependency-check-data
-          key: ${{ runner.os }}-owasp-dc-9.0.10-offline
+          key: ${{ runner.os }}-owasp-dc-8.4.3-stable
           restore-keys: |
             ${{ runner.os }}-owasp-dc-
 
-      # Setup OWASP Dependency Check
+      # Setup OWASP Dependency Check - USING STABLE VERSION
       - name: Setup OWASP Dependency Check
         run: |
           if [ ! -d "dependency-check" ]; then
-            OWASP_DC_VERSION="9.0.10"
+            OWASP_DC_VERSION="8.4.3"
             wget "https://github.com/jeremylong/DependencyCheck/releases/download/v${OWASP_DC_VERSION}/dependency-check-${OWASP_DC_VERSION}-release.zip"
             unzip "dependency-check-${OWASP_DC_VERSION}-release.zip"
             chmod +x dependency-check/bin/dependency-check.sh
           fi
 
-      # Run OWASP Dependency Check - SIMPLIFIED OFFLINE VERSION
+      # Run OWASP Dependency Check - USING STABLE DATA FEEDS VERSION
       - name: Run OWASP Dependency Check
         run: |
           mkdir -p reports
@@ -126,7 +126,7 @@ jobs:
             SUPPRESSION_FLAG="--suppression dependency-check-suppressions.xml"
           fi
 
-          echo "Running OWASP Dependency Check in offline mode to avoid NVD API rate limiting"
+          echo "Running OWASP Dependency Check 8.4.3 with stable data feeds"
           
           ./dependency-check/bin/dependency-check.sh \
             --project "MyType Security Scan" \
@@ -140,7 +140,6 @@ jobs:
             --format HTML \
             --out reports/ \
             --data dependency-check-data \
-            --noupdate \
             $SUPPRESSION_FLAG
 
       # Verify OWASP Reports were generated
