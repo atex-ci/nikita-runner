@@ -84,6 +84,13 @@ jobs:
       # Build the project
       - name: Build Project
         run: ./shared/build/scripts/pipeline-utils/pnpm-build.sh
+        
+
+      # Install .NET to avoid Assembly Analyzer errors
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '6.0.x'
 
       # Setup SonarQube Scanner
       - name: Setup SonarQube Scanner
@@ -115,7 +122,7 @@ jobs:
             chmod +x dependency-check/bin/dependency-check.sh
           fi
 
-      # Run OWASP Dependency Check - OPTIMIZED FOR TYPESCRIPT/PNPM
+      # Run OWASP Dependency Check - SIMPLIFIED FOR VERSION 8.4.3
       - name: Run OWASP Dependency Check
         run: |
           mkdir -p reports
@@ -126,7 +133,7 @@ jobs:
             SUPPRESSION_FLAG="--suppression dependency-check-suppressions.xml"
           fi
 
-          echo "Running OWASP Dependency Check optimized for TypeScript/pnpm monorepo"
+          echo "Running OWASP Dependency Check 8.4.3 with basic configuration"
           
           ./dependency-check/bin/dependency-check.sh \
             --project "MyType Security Scan" \
@@ -142,23 +149,6 @@ jobs:
             --format HTML \
             --out reports/ \
             --data dependency-check-data \
-            --disableAssembly \
-            --disableAutoconf \
-            --disableBundleAudit \
-            --disableCocoapodsAudit \
-            --disableComposer \
-            --disableCpan \
-            --disableDart \
-            --disableGolangDep \
-            --disableGolangMod \
-            --disableMSBuild \
-            --disableNugetconf \
-            --disableNuspec \
-            --disablePyDist \
-            --disablePyPkg \
-            --disableRubygems \
-            --enablePnpmAudit \
-            --enableRetired \
             $SUPPRESSION_FLAG
 
       # Verify OWASP Reports were generated
