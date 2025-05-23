@@ -101,7 +101,7 @@ jobs:
           path: |
             dependency-check
             ~/.gradle/dependency-check-data
-          key: ${{ runner.os }}-owasp-dc-8.4.3
+          key: ${{ runner.os }}-owasp-dc-9.0.10
           restore-keys: |
             ${{ runner.os }}-owasp-dc-
 
@@ -131,7 +131,6 @@ jobs:
           NVD_API_FLAG=""
           if [ ! -z "${NVD_API_KEY}" ]; then
               echo "NVD API key length: ${#NVD_API_KEY}"
-              echo "NVD API key is ${NVD_API_KEY}" 
               NVD_API_FLAG="--nvdApiKey \"${NVD_API_KEY}\""
           else
               echo "NVD API key is not set"
@@ -149,7 +148,8 @@ jobs:
             --format HTML \
             --out reports/ \
             --data dependency-check-data \
-            --nvdApiKey \"${NVD_API_KEY}\"
+            --nvdApiKey "${NVD_API_KEY}" \
+            $SUPPRESSION_FLAG
 
 
       # SonarQube Scan
