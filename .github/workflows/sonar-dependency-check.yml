@@ -140,7 +140,7 @@ jobs:
             --exclude "**/build/**" \
             --exclude "**/coverage/**" \
             --format JSON \
-            --format SONAR \
+            --format HTML \
             --out reports/ \
             --data dependency-check-data \
             $SUPPRESSION_FLAG \
