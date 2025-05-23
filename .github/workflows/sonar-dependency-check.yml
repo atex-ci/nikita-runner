@@ -1,9 +1,5 @@
-name: Build and SonarQube Analysis
+name: sonar-dependency-check
 on:
-#   push:
-#     branches: [ main, develop ]
-#   pull_request:
-#     branches: [ main ]
   workflow_dispatch:
       inputs:      
           REPOSITORY:
@@ -113,7 +109,7 @@ jobs:
       - name: Setup OWASP Dependency Check
         run: |
           if [ ! -d "dependency-check" ]; then
-            OWASP_DC_VERSION="8.4.3"
+            OWASP_DC_VERSION="9.0.10"
             wget "https://github.com/jeremylong/DependencyCheck/releases/download/v${OWASP_DC_VERSION}/dependency-check-${OWASP_DC_VERSION}-release.zip"
             unzip "dependency-check-${OWASP_DC_VERSION}-release.zip"
             chmod +x dependency-check/bin/dependency-check.sh
@@ -122,10 +118,15 @@ jobs:
       # Run OWASP Dependency Check
       - name: Run OWASP Dependency Check
         run: |
-          # Controlla se esiste il file di suppression
+          # check if suppression file exists
           SUPPRESSION_FLAG=""
           if [ -f "dependency-check-suppressions.xml" ]; then
             SUPPRESSION_FLAG="--suppression dependency-check-suppressions.xml"
+          fi
+
+          NVD_API_FLAG=""
+          if [ ! -z "${{ secrets.NVD_API_KEY }}" ]; then
+            NVD_API_FLAG="--nvdApiKey ${{ secrets.NVD_API_KEY }}"
           fi
           
           ./dependency-check/bin/dependency-check.sh \
@@ -139,9 +140,10 @@ jobs:
             --format JSON \
             --format SONAR \
             --out reports/ \
-            --nvdApiKey ${{ secrets.NVD_API_KEY }} \
             --data dependency-check-data \
-            $SUPPRESSION_FLAG
+            $SUPPRESSION_FLAG \
+            $NVD_API_FLAG
+
 
       # SonarQube Scan
       - name: SonarQube Scan
