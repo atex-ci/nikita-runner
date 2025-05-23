@@ -148,6 +148,7 @@ jobs:
             --format HTML \
             --out reports/ \
             --data dependency-check-data \
+            --nvdApiKey "${NVD_API_KEY}" \
             $SUPPRESSION_FLAG
 
 
