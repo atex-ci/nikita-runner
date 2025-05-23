@@ -45,6 +45,19 @@ jobs:
         with:
           dotnet-version: '6.0.x'
 
+      # Setup Java 17 for SonarQube Scanner
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # Setup .NET to avoid Assembly Analyzer errors
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '6.0.x'
+
       # Setup pnpm
       - uses: pnpm/action-setup@v4
         name: Install pnpm
@@ -98,10 +111,10 @@ jobs:
       - name: Build Project
         run: ./shared/build/scripts/pipeline-utils/pnpm-build.sh
 
-      # Setup SonarQube Scanner
+      # Setup SonarQube Scanner - UPDATED VERSION
       - name: Setup SonarQube Scanner
         run: |
-          SONAR_SCANNER_VERSION="4.8.0.2856"
+          SONAR_SCANNER_VERSION="5.0.1.3006"
           wget "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_SCANNER_VERSION}-linux.zip"
           unzip "sonar-scanner-cli-${SONAR_SCANNER_VERSION}-linux.zip"
           sudo mv "sonar-scanner-${SONAR_SCANNER_VERSION}-linux" /opt/sonar-scanner
@@ -177,9 +190,10 @@ jobs:
             echo "❌ HTML report missing"
           fi
 
-      # SonarQube Scan
+      # SonarQube Scan - WITH EXPLICIT JAVA_HOME
       - name: SonarQube Scan
         run: |
+          export JAVA_HOME=$JAVA_HOME_17_X64
           sonar-scanner \
             -Dsonar.projectKey=${{ inputs.PROJECT_KEY }} \
             -Dsonar.projectName="${{ github.repository }}" \
