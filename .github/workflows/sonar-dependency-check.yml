@@ -118,6 +118,8 @@ jobs:
       # Run OWASP Dependency Check
       - name: Run OWASP Dependency Check
         run: |
+          mkdir -p reports
+
           # check if suppression file exists
           SUPPRESSION_FLAG=""
           if [ -f "dependency-check-suppressions.xml" ]; then
