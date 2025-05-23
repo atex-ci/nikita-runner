@@ -115,7 +115,7 @@ jobs:
             chmod +x dependency-check/bin/dependency-check.sh
           fi
 
-      # Run OWASP Dependency Check - USING STABLE DATA FEEDS VERSION
+      # Run OWASP Dependency Check - OPTIMIZED FOR TYPESCRIPT/PNPM
       - name: Run OWASP Dependency Check
         run: |
           mkdir -p reports
@@ -126,7 +126,7 @@ jobs:
             SUPPRESSION_FLAG="--suppression dependency-check-suppressions.xml"
           fi
 
-          echo "Running OWASP Dependency Check 8.4.3 with stable data feeds"
+          echo "Running OWASP Dependency Check optimized for TypeScript/pnpm monorepo"
           
           ./dependency-check/bin/dependency-check.sh \
             --project "MyType Security Scan" \
@@ -136,10 +136,29 @@ jobs:
             --exclude "**/dist/**" \
             --exclude "**/build/**" \
             --exclude "**/coverage/**" \
+            --exclude "**/apps/wordpress/**" \
+            --exclude "**/lambdas/mytype-installer-lambda/**" \
             --format JSON \
             --format HTML \
             --out reports/ \
             --data dependency-check-data \
+            --disableAssembly \
+            --disableAutoconf \
+            --disableBundleAudit \
+            --disableCocoapodsAudit \
+            --disableComposer \
+            --disableCpan \
+            --disableDart \
+            --disableGolangDep \
+            --disableGolangMod \
+            --disableMSBuild \
+            --disableNugetconf \
+            --disableNuspec \
+            --disablePyDist \
+            --disablePyPkg \
+            --disableRubygems \
+            --enablePnpmAudit \
+            --enableRetired \
             $SUPPRESSION_FLAG
 
       # Verify OWASP Reports were generated
