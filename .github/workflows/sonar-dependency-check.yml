@@ -130,10 +130,10 @@ jobs:
 
           NVD_API_FLAG=""
           if [ ! -z "${NVD_API_KEY}" ]; then
-            echo "NVD API key is set"
-            NVD_API_FLAG="--nvdApiKey ${NVD_API_KEY}"
+              echo "NVD API key length: ${#NVD_API_KEY}"
+              NVD_API_FLAG="--nvdApiKey \"${NVD_API_KEY}\""
           else
-            echo "NVD API key is not set"
+              echo "NVD API key is not set"
           fi
           
           ./dependency-check/bin/dependency-check.sh \
@@ -148,7 +148,6 @@ jobs:
             --format HTML \
             --out reports/ \
             --data dependency-check-data \
-            $SUPPRESSION_FLAG \
             $NVD_API_FLAG
 
 
