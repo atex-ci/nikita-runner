@@ -196,7 +196,6 @@ jobs:
           export JAVA_HOME=$JAVA_HOME_17_X64
           sonar-scanner \
             -Dsonar.projectKey=${{ inputs.PROJECT_KEY }} \
-            -Dsonar.projectName="${{ github.repository }}" \
             -Dsonar.sources=. \
             -Dsonar.exclusions=**/node_modules/**,**/.pnpm/**,**/dist/**,**/build/**,**/coverage/** \
             -Dsonar.dependencyCheck.jsonReportPath=reports/dependency-check-report.json \
