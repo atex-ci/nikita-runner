@@ -117,6 +117,8 @@ jobs:
 
       # Run OWASP Dependency Check
       - name: Run OWASP Dependency Check
+        env:
+            NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
           mkdir -p reports
 
@@ -127,9 +129,9 @@ jobs:
           fi
 
           NVD_API_FLAG=""
-          if [ ! -z "${{ secrets.NVD_API_KEY }}" ]; then
+          if [ ! -z "${NVD_API_KEY}" ]; then
             echo "NVD API key is set"
-            NVD_API_FLAG="--nvdApiKey ${{ secrets.NVD_API_KEY }}"
+            NVD_API_FLAG="--nvdApiKey ${NVD_API_KEY}"
           else
             echo "NVD API key is not set"
           fi
