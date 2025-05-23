@@ -94,14 +94,14 @@ jobs:
           sudo mv "sonar-scanner-${SONAR_SCANNER_VERSION}-linux" /opt/sonar-scanner
           sudo ln -s /opt/sonar-scanner/bin/sonar-scanner /usr/local/bin/sonar-scanner
 
-      # Cache OWASP Dependency Check
+      # Cache OWASP Dependency Check - UPDATED FOR OFFLINE MODE
       - name: Cache OWASP Dependency Check
         uses: actions/cache@v3
         with:
           path: |
             dependency-check
             ~/.gradle/dependency-check-data
-          key: ${{ runner.os }}-owasp-dc-9.0.10
+          key: ${{ runner.os }}-owasp-dc-9.0.10-offline
           restore-keys: |
             ${{ runner.os }}-owasp-dc-
 
@@ -115,26 +115,18 @@ jobs:
             chmod +x dependency-check/bin/dependency-check.sh
           fi
 
-      # Run OWASP Dependency Check
+      # Run OWASP Dependency Check - SIMPLIFIED OFFLINE VERSION
       - name: Run OWASP Dependency Check
-        env:
-            NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
           mkdir -p reports
 
-          # check if suppression file exists
+          # Check if suppression file exists
           SUPPRESSION_FLAG=""
           if [ -f "dependency-check-suppressions.xml" ]; then
             SUPPRESSION_FLAG="--suppression dependency-check-suppressions.xml"
           fi
 
-          NVD_API_FLAG=""
-          if [ ! -z "${NVD_API_KEY}" ]; then
-              echo "NVD API key length: ${#NVD_API_KEY}"
-              NVD_API_FLAG="--nvdApiKey \"${NVD_API_KEY}\""
-          else
-              echo "NVD API key is not set"
-          fi
+          echo "Running OWASP Dependency Check in offline mode to avoid NVD API rate limiting"
           
           ./dependency-check/bin/dependency-check.sh \
             --project "MyType Security Scan" \
@@ -148,9 +140,28 @@ jobs:
             --format HTML \
             --out reports/ \
             --data dependency-check-data \
-            --nvdApiKey "${NVD_API_KEY}" \
+            --noupdate \
             $SUPPRESSION_FLAG
 
+      # Verify OWASP Reports were generated
+      - name: Verify OWASP Reports
+        run: |
+          echo "Files in reports directory:"
+          ls -la reports/
+          
+          if [ -f "reports/dependency-check-report.json" ]; then
+            echo "✅ JSON report generated successfully"
+            echo "JSON report size: $(wc -c < reports/dependency-check-report.json) bytes"
+          else
+            echo "❌ JSON report missing"
+            exit 1
+          fi
+          
+          if [ -f "reports/dependency-check-report.html" ]; then
+            echo "✅ HTML report generated successfully"
+          else
+            echo "❌ HTML report missing"
+          fi
 
       # SonarQube Scan
       - name: SonarQube Scan
