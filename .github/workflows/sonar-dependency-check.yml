@@ -1,0 +1,159 @@
+name: Build and SonarQube Analysis
+on:
+#   push:
+#     branches: [ main, develop ]
+#   pull_request:
+#     branches: [ main ]
+  workflow_dispatch:
+      inputs:      
+          REPOSITORY:
+            description: 'Repository to analyze (e.g. nikita)'
+            default: 'nikita'
+            type: string
+          GIT_BRANCH:
+            description: 'branch to clone'     
+            required: true
+            default: 'main'
+          PROJECT_KEY:
+            description: 'Sonarqube Project Key'     
+            required: true
+            default: 'mytype'
+
+jobs:
+  security-and-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        run: |
+          pwd
+          git config --global http.sslverify false
+          git clone --branch "${{ github.event.inputs.GIT_BRANCH}}" "https://${{ github.repository_owner }}:${{ secrets.GH_PASSWORD }}@github.com/atex-ci/nikita.git" .
+          ls -la
+
+      # Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Setup pnpm
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        id: pnpm-install
+        with:
+          version: 9
+          run_install: false
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+      
+      - name: Restore cached pnpm dependencies
+        id: cache-dependencies-restore
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+      
+      - name: Install dependencies
+        run: pnpm install
+      
+      - name: Delete Previous Cache
+        if: ${{ steps.cache-dependencies-restore.outputs.cache-hit }}
+        continue-on-error: true
+        run: |
+          gh extension install actions/gh-actions-cache
+          gh actions-cache delete "${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}" --confirm
+        env:
+          GH_TOKEN: ${{ secrets.GH_PASSWORD }}          
+      
+      - name: Cache pnpm dependencies
+        id: cache-dependencies-save
+        uses: actions/cache/save@v3
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+      
+      - uses: nrwl/nx-set-shas@v3
+      
+      - name: Get Current Job Log URL
+        uses: Tiryoh/gha-jobid-action@v0
+        id: jobs
+        with:
+          github_token: ${{ secrets.GH_PASSWORD }}
+          job_name: ${{ github.job }}
+
+      # Build the project
+      - name: Build Project
+        run: ./shared/build/scripts/pipeline-utils/pnpm-build.sh
+
+      # Setup SonarQube Scanner
+      - name: Setup SonarQube Scanner
+        run: |
+          SONAR_SCANNER_VERSION="4.8.0.2856"
+          wget "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_SCANNER_VERSION}-linux.zip"
+          unzip "sonar-scanner-cli-${SONAR_SCANNER_VERSION}-linux.zip"
+          sudo mv "sonar-scanner-${SONAR_SCANNER_VERSION}-linux" /opt/sonar-scanner
+          sudo ln -s /opt/sonar-scanner/bin/sonar-scanner /usr/local/bin/sonar-scanner
+
+      # Cache OWASP Dependency Check
+      - name: Cache OWASP Dependency Check
+        uses: actions/cache@v3
+        with:
+          path: |
+            dependency-check
+            ~/.gradle/dependency-check-data
+          key: ${{ runner.os }}-owasp-dc-8.4.3
+          restore-keys: |
+            ${{ runner.os }}-owasp-dc-
+
+      # Setup OWASP Dependency Check
+      - name: Setup OWASP Dependency Check
+        run: |
+          if [ ! -d "dependency-check" ]; then
+            OWASP_DC_VERSION="8.4.3"
+            wget "https://github.com/jeremylong/DependencyCheck/releases/download/v${OWASP_DC_VERSION}/dependency-check-${OWASP_DC_VERSION}-release.zip"
+            unzip "dependency-check-${OWASP_DC_VERSION}-release.zip"
+            chmod +x dependency-check/bin/dependency-check.sh
+          fi
+
+      # Run OWASP Dependency Check
+      - name: Run OWASP Dependency Check
+        run: |
+          # Controlla se esiste il file di suppression
+          SUPPRESSION_FLAG=""
+          if [ -f "dependency-check-suppressions.xml" ]; then
+            SUPPRESSION_FLAG="--suppression dependency-check-suppressions.xml"
+          fi
+          
+          ./dependency-check/bin/dependency-check.sh \
+            --project "MyType Security Scan" \
+            --scan . \
+            --exclude "**/node_modules/**" \
+            --exclude "**/.pnpm/**" \
+            --exclude "**/dist/**" \
+            --exclude "**/build/**" \
+            --exclude "**/coverage/**" \
+            --format JSON \
+            --format SONAR \
+            --out reports/ \
+            --nvdApiKey ${{ secrets.NVD_API_KEY }} \
+            --data dependency-check-data \
+            $SUPPRESSION_FLAG
+
+      # SonarQube Scan
+      - name: SonarQube Scan
+        run: |
+          sonar-scanner \
+            -Dsonar.projectKey=${{ inputs.PROJECT_KEY }} \
+            -Dsonar.projectName="${{ github.repository }}" \
+            -Dsonar.sources=. \
+            -Dsonar.exclusions=**/node_modules/**,**/.pnpm/**,**/dist/**,**/build/**,**/coverage/** \
+            -Dsonar.dependencyCheck.jsonReportPath=reports/dependency-check-report.json \
+            -Dsonar.dependencyCheck.htmlReportPath=reports/dependency-check-report.html
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PASSWORD }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
