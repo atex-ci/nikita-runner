@@ -131,6 +131,7 @@ jobs:
           NVD_API_FLAG=""
           if [ ! -z "${NVD_API_KEY}" ]; then
               echo "NVD API key length: ${#NVD_API_KEY}"
+              echo "NVD API key is ${NVD_API_KEY}" 
               NVD_API_FLAG="--nvdApiKey \"${NVD_API_KEY}\""
           else
               echo "NVD API key is not set"
@@ -148,7 +149,7 @@ jobs:
             --format HTML \
             --out reports/ \
             --data dependency-check-data \
-            $NVD_API_FLAG
+            --nvdApiKey \"${NVD_API_KEY}\"
 
 
       # SonarQube Scan
