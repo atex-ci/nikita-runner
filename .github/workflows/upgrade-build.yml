@@ -1,4 +1,4 @@
-name: manual-build
+name: upgrade-build
 
 on:  
   workflow_dispatch:
@@ -23,6 +23,8 @@ jobs:
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       LOGTAIL_AUTH_TOKEN: ${{ secrets.LOGTAIL_AUTH_TOKEN }}
       CONVOX_TOKEN: ${{ secrets.CONVOX_TOKEN }}
+      GH_REPO_OWNER: ${{ github.repository_owner }}
+      GH_PASSWORD: ${{ secrets.GH_PASSWORD }}
       
     steps:
       - name: checkout
