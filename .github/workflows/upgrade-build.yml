@@ -6,15 +6,15 @@ on:
       GIT_BRANCH:
         description: 'branch to clone'     
         required: true
-        default: 'main'
+        default: 'PMC-3982-deploy-using-git'
       ENVIRONMENT:
         description: 'deploy to'     
         required: true
-        default: 'mytype-dev'
+        default: 'mytype-qa-dev'
       SKIP_TESTS:
         description: 'Skip test phase'     
         required: true
-        default: 'false'
+        default: 'true'
 
 jobs:
   main:
