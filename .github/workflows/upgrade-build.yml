@@ -11,10 +11,6 @@ on:
         description: 'deploy to'     
         required: true
         default: 'mytype-qa-dev'
-      SKIP_TESTS:
-        description: 'Skip test phase'     
-        required: true
-        default: 'true'
 
 jobs:
   main:
@@ -92,4 +88,4 @@ jobs:
           export GH_PASSWORD="${{ secrets.GH_PASSWORD }}"
           export DEFAULT_AWS_ACCESS_KEY_ID="${{ secrets.DEFAULT_AWS_ACCESS_KEY_ID }}"
           export DEFAULT_AWS_SECRET_ACCESS_KEY="${{ secrets.DEFAULT_AWS_SECRET_ACCESS_KEY }}"
-          ./shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.ENVIRONMENT }}" "${{ secrets.SALT }}" "${{ github.event.inputs.SKIP_TESTS}}"
+          ./shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.ENVIRONMENT }}" "${{ secrets.SALT }}" "true"
