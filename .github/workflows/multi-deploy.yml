@@ -18,7 +18,7 @@ on:
       operation:
         type: choice
         required: true
-        description: action to perform
+        description: action to perform (full=test & deploy on dev, deploy=build & deploy, upgrade=in place upgrade)
         default: deploy
         options: 
         - deploy
