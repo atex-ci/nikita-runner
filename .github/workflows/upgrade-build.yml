@@ -15,7 +15,7 @@ on:
 jobs:
   main:
     runs-on: ubuntu-latest
-    env:
+    env: # all these values are stored in the .env file used by the upgrade process
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       LOGTAIL_AUTH_TOKEN: ${{ secrets.LOGTAIL_AUTH_TOKEN }}
       CONVOX_TOKEN: ${{ secrets.CONVOX_TOKEN }}
