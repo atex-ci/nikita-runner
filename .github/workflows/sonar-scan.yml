@@ -48,19 +48,6 @@ jobs:
         with:
           dotnet-version: '6.0.x'
 
-      # Setup Java 17 for SonarQube Scanner
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      # Setup .NET to avoid Assembly Analyzer errors
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: '6.0.x'
-
       # Setup pnpm
       - uses: pnpm/action-setup@v4
         name: Install pnpm
@@ -191,7 +178,21 @@ jobs:
             echo "✅ HTML report generated successfully"
           else
             echo "❌ HTML report missing"
+            exit 1
           fi
+
+      # Upload reports to S3
+      - name: Upload reports to S3
+        uses: jakejarvis/s3-sync-action@master
+        with:
+          args: --delete
+        env:
+          AWS_S3_BUCKET: 'mytype-sonar-reports'
+          AWS_ACCESS_KEY_ID: ${{ secrets.DEFAULT_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DEFAULT_AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: 'eu-west-1'
+          SOURCE_DIR: 'reports'
+          DEST_DIR: ''
 
       - uses: sonarsource/sonarqube-scan-action@master
         env:
