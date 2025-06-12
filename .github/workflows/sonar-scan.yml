@@ -48,6 +48,18 @@ jobs:
         with:
           dotnet-version: '6.0.x'
 
+      # Setup Java 17 for SonarQube Scanner
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # Setup .NET to avoid Assembly Analyzer errors
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '6.0.x'
       # Setup pnpm
       - uses: pnpm/action-setup@v4
         name: Install pnpm
