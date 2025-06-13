@@ -129,7 +129,7 @@ jobs:
           path: |
             dependency-check
             ~/.gradle/dependency-check-data
-          key: ${{ runner.os }}-owasp-dc-8.4.3-stable
+          key: ${{ runner.os }}-owasp-dc-12.1.0-stable
           restore-keys: |
             ${{ runner.os }}-owasp-dc-
 
@@ -137,13 +137,13 @@ jobs:
       - name: Setup OWASP Dependency Check
         run: |
           if [ ! -d "dependency-check" ]; then
-            OWASP_DC_VERSION="8.4.3"
-            wget "https://github.com/jeremylong/DependencyCheck/releases/download/v${OWASP_DC_VERSION}/dependency-check-${OWASP_DC_VERSION}-release.zip"
+            OWASP_DC_VERSION="12.1.0"
+            wget "https://github.com/dependency-check/DependencyCheck/releases/download/v${OWASP_DC_VERSION}/dependency-check-${OWASP_DC_VERSION}-release.zip"
             unzip "dependency-check-${OWASP_DC_VERSION}-release.zip"
             chmod +x dependency-check/bin/dependency-check.sh
           fi
 
-      # Run OWASP Dependency Check - SIMPLIFIED FOR VERSION 8.4.3
+      # Run OWASP Dependency Check - SIMPLIFIED FOR VERSION
       - name: Run OWASP Dependency Check
         run: |
           mkdir -p reports
@@ -154,7 +154,7 @@ jobs:
             SUPPRESSION_FLAG="--suppression dependency-check-suppressions.xml"
           fi
 
-          echo "Running OWASP Dependency Check 8.4.3 with basic configuration"
+          echo "Running OWASP Dependency Check with basic configuration"
           
           ./dependency-check/bin/dependency-check.sh \
             --project "MyType Security Scan" \
