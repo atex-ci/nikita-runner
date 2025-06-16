@@ -90,6 +90,18 @@ jobs:
       - name: Run Tests
         run: npx nx run-many --target=test --coverage --parallel
       
+ 
+      # Debug step per vedere i file generati
+      - name: List generated coverage files
+        run: |
+          echo "=== LCOV files found ==="
+          find . -name "lcov.info" -type f || echo "No lcov.info files found"
+          echo "=== Istanbul JSON files found ==="
+          find . -name "coverage-final.json" -type f || echo "No coverage-final.json files found"
+          echo "=== All coverage directories ==="
+          find . -name "coverage" -type d -exec ls -la {} \; || echo "No coverage directories found"
+      
+
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@master
         env:
@@ -99,7 +111,9 @@ jobs:
           SONAR_SCANNER_OPTS: >
             -Dsonar.projectKey=mytype
             -Dsonar.projectName=mytype
-            -Dsonar.javascript.lcov.reportPaths=shared/build/coverage/lcov.info,shared/common/coverage/lcov.info,shared/server-common/coverage/lcov.info,apps/client/coverage/lcov.info,apps/server/coverage/lcov.info,apps/installer/coverage/lcov.info,adapters/desk-adapter/coverage/lcov.info,adapters/wp-adapter/coverage/lcov.info
+            -Dsonar.javascript.lcov.reportPaths=**/coverage/lcov.info
+            -Dsonar.javascript.istanbul.reportPaths=**/coverage/coverage-final.json
+
 
 
       - uses: sonarsource/sonarqube-quality-gate-action@master
