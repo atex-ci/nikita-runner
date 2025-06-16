@@ -100,8 +100,6 @@ jobs:
             -Dsonar.projectKey=mytype
             -Dsonar.projectName=mytype
             -Dsonar.javascript.lcov.reportPaths=shared/build/coverage/lcov.info,shared/common/coverage/lcov.info,shared/server-common/coverage/lcov.info,apps/client/coverage/lcov.info,apps/server/coverage/lcov.info,apps/installer/coverage/lcov.info,adapters/desk-adapter/coverage/lcov.info,adapters/wp-adapter/coverage/lcov.info
-            -Dsonar.coverage.exclusions=**/*.test.ts,**/*.spec.ts,**/node_modules/**,**/*.d.ts
-            -Dsonar.exclusions=**/node_modules/**,**/coverage/**,**/*.d.ts,**/dist/**
 
 
       - uses: sonarsource/sonarqube-quality-gate-action@master
