@@ -111,10 +111,8 @@ jobs:
           SONAR_SCANNER_OPTS: >
             -Dsonar.projectKey=mytype
             -Dsonar.projectName=mytype
-            -Dsonar.javascript.lcov.reportPaths=**/coverage/lcov.info
-            -Dsonar.javascript.istanbul.reportPaths=**/coverage/coverage-final.json
-
-
+            -Dsonar.javascript.lcov.reportPaths=shared/common/coverage/lcov.info,shared/build/coverage/lcov.info,shared/server-common/coverage/lcov.info,apps/server/coverage/lcov.info,apps/client/coverage/lcov.info
+            -Dsonar.javascript.istanbul.reportPaths=adapters/desk-adapter/coverage/coverage-final.json,adapters/wp-adapter/coverage/coverage-final.json,apps/installer/coverage/coverage-final.json
 
       - uses: sonarsource/sonarqube-quality-gate-action@master
         timeout-minutes: 5
