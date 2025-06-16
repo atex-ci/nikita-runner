@@ -91,6 +91,19 @@ jobs:
         run: npx nx run-many --target=test --coverage --parallel
       
  
+      - name: Convert Istanbul to LCOV
+        run: |
+          # Installa nyc per la conversione
+          npm install -g nyc
+          
+          # Converti i file coverage-final.json in lcov.info
+          cd adapters/desk-adapter && nyc report --reporter=lcov --temp-dir=coverage
+          cd ../../adapters/wp-adapter && nyc report --reporter=lcov --temp-dir=coverage  
+          cd ../../apps/installer && nyc report --reporter=lcov --temp-dir=coverage
+    
+          # Verifica che i file siano stati creati
+          ls -la adapters/*/coverage/lcov.info apps/installer/coverage/lcov.info
+
       # Debug step per vedere i file generati
       - name: List generated coverage files
         run: |
@@ -100,15 +113,6 @@ jobs:
           find . -name "coverage-final.json" -type f || echo "No coverage-final.json files found"
           echo "=== All coverage directories ==="
           find . -name "coverage" -type d -exec ls -la {} \; || echo "No coverage directories found"
-      
-      - name: Verify coverage files exist
-        run: |
-          echo "=== Verifying specific files ==="
-          ls -la adapters/desk-adapter/coverage/coverage-final.json || echo "desk-adapter coverage missing"
-          ls -la adapters/wp-adapter/coverage/coverage-final.json || echo "wp-adapter coverage missing"
-          ls -la apps/installer/coverage/coverage-final.json || echo "installer coverage missing"
-          echo "=== File sizes ==="
-          du -h adapters/*/coverage/coverage-final.json apps/installer/coverage/coverage-final.json || true
 
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@master
@@ -119,8 +123,7 @@ jobs:
           SONAR_SCANNER_OPTS: >
             -Dsonar.projectKey=mytype
             -Dsonar.projectName=mytype
-            -Dsonar.javascript.lcov.reportPaths=shared/common/coverage/lcov.info,shared/build/coverage/lcov.info,shared/server-common/coverage/lcov.info,apps/server/coverage/lcov.info,apps/client/coverage/lcov.info
-            -Dsonar.javascript.istanbul.reportPaths=adapters/desk-adapter/coverage/coverage-final.json,adapters/wp-adapter/coverage/coverage-final.json,apps/installer/coverage/coverage-final.json
+            -Dsonar.javascript.lcov.reportPaths=**/coverage/lcov.info
 
       - uses: sonarsource/sonarqube-quality-gate-action@master
         timeout-minutes: 5
