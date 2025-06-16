@@ -1,0 +1,110 @@
+name: sonar-scan
+
+on:  
+  workflow_dispatch:
+    inputs:      
+      REPOSITORY:
+        description: 'Repository to analyze (e.g. nikita)'
+        default: 'nikita' #
+        type: string
+      GIT_BRANCH:
+        description: 'branch to clone'     
+        required: true
+        default: 'main'
+      PROJECT_KEY:
+        description: 'Sonarqube Project Key'     
+        required: true
+        default: 'mytype'
+
+jobs:
+  sonarqube:
+    name: Sonarqube Scan
+    runs-on: ubuntu-latest
+    permissions: read-all
+    steps:
+      - name: checkout
+        run: |
+          pwd
+          git config --global http.sslverify false
+          git clone --branch "${{ github.event.inputs.GIT_BRANCH}}" "https://${{ github.repository_owner }}:${{ secrets.GH_PASSWORD }}@github.com/atex-ci/nikita.git" .
+          ls -la
+
+      # Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Setup pnpm
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        id: pnpm-install
+        with:
+          version: 9
+          run_install: false
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+      
+      - name: Restore cached pnpm dependencies
+        id: cache-dependencies-restore
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+      
+      - name: Install dependencies
+        run: pnpm install
+      
+      - name: Delete Previous Cache
+        if: ${{ steps.cache-dependencies-restore.outputs.cache-hit }}
+        continue-on-error: true
+        run: |
+          gh extension install actions/gh-actions-cache
+          gh actions-cache delete "${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}" --confirm
+        env:
+          GH_TOKEN: ${{ secrets.GH_PASSWORD }}          
+      
+      - name: Cache pnpm dependencies
+        id: cache-dependencies-save
+        uses: actions/cache/save@v3
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+      
+      - uses: nrwl/nx-set-shas@v3
+      
+      - name: Get Current Job Log URL
+        uses: Tiryoh/gha-jobid-action@v0
+        id: jobs
+        with:
+          github_token: ${{ secrets.GH_PASSWORD }}
+          job_name: ${{ github.job }}
+
+      - name: Build Project
+        run: npx nx run-many --target=build --parallel
+
+      - name: Run Tests
+        run: npx nx run-many --target=test --coverage --parallel
+      
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          # TODO: Temporarily disable coverage check
+          SONAR_SCANNER_OPTS: >
+            -Dsonar.projectKey=mytype
+            -Dsonar.projectName=mytype
+            -Dsonar.javascript.lcov.reportPaths=shared/build/coverage/lcov.info,shared/common/coverage/lcov.info,shared/server-common/coverage/lcov.info,apps/client/coverage/lcov.info,apps/server/coverage/lcov.info,apps/installer/coverage/lcov.info,adapters/desk-adapter/coverage/lcov.info,adapters/wp-adapter/coverage/lcov.info
+            -Dsonar.coverage.exclusions=**/*.test.ts,**/*.spec.ts,**/node_modules/**,**/*.d.ts
+            -Dsonar.exclusions=**/node_modules/**,**/coverage/**,**/*.d.ts,**/dist/**
+
+
+      - uses: sonarsource/sonarqube-quality-gate-action@master
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
