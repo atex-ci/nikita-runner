@@ -101,6 +101,14 @@ jobs:
           echo "=== All coverage directories ==="
           find . -name "coverage" -type d -exec ls -la {} \; || echo "No coverage directories found"
       
+      - name: Verify coverage files exist
+        run: |
+          echo "=== Verifying specific files ==="
+          ls -la adapters/desk-adapter/coverage/coverage-final.json || echo "desk-adapter coverage missing"
+          ls -la adapters/wp-adapter/coverage/coverage-final.json || echo "wp-adapter coverage missing"
+          ls -la apps/installer/coverage/coverage-final.json || echo "installer coverage missing"
+          echo "=== File sizes ==="
+          du -h adapters/*/coverage/coverage-final.json apps/installer/coverage/coverage-final.json || true
 
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@master
