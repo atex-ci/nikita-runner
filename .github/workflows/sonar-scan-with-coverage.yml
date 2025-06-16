@@ -1,4 +1,4 @@
-name: sonar-scan
+name: sonar-scan-with-coverage
 
 on:  
   workflow_dispatch:
