@@ -93,17 +93,22 @@ jobs:
  
       - name: Convert Istanbul to LCOV
         run: |
-          # Installa nyc per la conversione
-          npm install -g istanbul-to-lcov
+          npm install -g nyc
           
-          # Converti i file coverage-final.json in lcov.info
-          istanbul-to-lcov adapters/desk-adapter/coverage/coverage-final.json > adapters/desk-adapter/coverage/lcov.info
-          istanbul-to-lcov adapters/wp-adapter/coverage/coverage-final.json > adapters/wp-adapter/coverage/lcov.info  
-          istanbul-to-lcov apps/installer/coverage/coverage-final.json > apps/installer/coverage/lcov.info
- 
-    
-          # Verifica che i file siano stati creati
-          ls -la adapters/*/coverage/lcov.info apps/installer/coverage/lcov.info
+          # Per ogni progetto
+          for dir in adapters/desk-adapter adapters/wp-adapter apps/installer; do
+            if [ -f "$dir/coverage/coverage-final.json" ]; then
+              echo "Converting $dir..."
+              cd "$dir"
+              mkdir -p .nyc_output
+              cp coverage/coverage-final.json .nyc_output/out.json
+              nyc report --reporter=lcov --report-dir=coverage
+              cd - > /dev/null
+            fi
+          done
+          
+          # Verifica
+          find . -name "lcov.info" -type f
 
       # Debug step per vedere i file generati
       - name: List generated coverage files
