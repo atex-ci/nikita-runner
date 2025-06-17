@@ -59,8 +59,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install
       
-      - name: Start client postbuild (async)
-        run: npx nx run client:postbuild &
+      - name: Start client build (async)
+        run: pnpm --filter client build &
         continue-on-error: true
       - name: Delete Previous Cache
         if: ${{ steps.cache-dependencies-restore.outputs.cache-hit }}
