@@ -59,6 +59,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install
       
+      - name: Start client postbuild (async)
+        run: npx nx run client:postbuild &
+        continue-on-error: true
       - name: Delete Previous Cache
         if: ${{ steps.cache-dependencies-restore.outputs.cache-hit }}
         continue-on-error: true
@@ -99,14 +102,15 @@ jobs:
         run: |
           echo "🚀 Running tests with cache..."
           
-          # Capture output and exit code
-          if npx nx run-many --target=test --coverage --parallel 2>&1 | tee test_output.log; then
-            echo "✅ All tests passed on first attempt"
-          else
+          # Run tests and capture output
+          npx nx run-many --target=test --coverage --parallel 2>&1 | tee test_output.log
+          
+          # Check if there are failed tasks regardless of exit code
+          if grep -q "Failed tasks:" test_output.log; then
             echo "❌ Some tests failed, analyzing which ones..."
             
-            # Extract failed projects from NX output
-            FAILED_PROJECTS=$(grep -E "✖.*:test" test_output.log | sed 's/.*✖ \([^:]*\):test.*/\1/' | tr '\n' ',' | sed 's/,$//')
+            # Extract failed projects from the "Failed tasks:" section
+            FAILED_PROJECTS=$(grep -A 50 "Failed tasks:" test_output.log | grep "^- .*:test$" | sed 's/^- \(.*\):test$/\1/' | tr '\n' ',' | sed 's/,$//')
             
             if [ -n "$FAILED_PROJECTS" ]; then
               echo "🔄 Failed projects: $FAILED_PROJECTS"
@@ -125,6 +129,8 @@ jobs:
               find . -name "coverage" -type d -exec rm -rf {} + 2>/dev/null || true
               npx nx run-many --target=test --coverage --parallel --skip-nx-cache
             fi
+          else
+            echo "✅ All tests passed on first attempt"
           fi
           
           # Cleanup
