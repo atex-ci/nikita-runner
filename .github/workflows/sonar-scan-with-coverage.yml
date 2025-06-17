@@ -84,8 +84,19 @@ jobs:
           github_token: ${{ secrets.GH_PASSWORD }}
           job_name: ${{ github.job }}
 
+      - name: Modify nx.json to skip build dependencies for tests
+        run: |
+          # Backup originale
+          cp nx.json nx.json.backup
+          
+          # Rimuove "build" dalle dipendenze del target test, mantiene solo "^build"
+          jq '.targetDefaults.test.dependsOn = ["^build"]' nx.json > nx.json.tmp && mv nx.json.tmp nx.json
+          
+          echo "Modified nx.json test dependencies:"
+          jq '.targetDefaults.test.dependsOn' nx.json
+
       - name: Run Tests
-        run: npx nx run-many --target=test-fast --coverage --parallel
+        run: npx nx run-many --target=test --coverage --parallel
       
       - name: Convert Istanbul to LCOV
         run: |
