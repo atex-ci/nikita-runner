@@ -86,23 +86,55 @@ jobs:
 
       - name: Modify nx.json to skip build dependencies for tests
         run: |
-          # Backup originale
+          # Backup original
           cp nx.json nx.json.backup
           
-          # Rimuove "build" dalle dipendenze del target test, mantiene solo "^build"
+          # Remove "build" from test target dependencies, keep only "^build"
           jq '.targetDefaults.test.dependsOn = ["^build"]' nx.json > nx.json.tmp && mv nx.json.tmp nx.json
           
           echo "Modified nx.json test dependencies:"
           jq '.targetDefaults.test.dependsOn' nx.json
 
       - name: Run Tests
-        run: npx nx run-many --target=test --coverage --parallel
+        run: |
+          echo "🚀 Running tests with cache..."
+          
+          # Capture output and exit code
+          if npx nx run-many --target=test --coverage --parallel 2>&1 | tee test_output.log; then
+            echo "✅ All tests passed on first attempt"
+          else
+            echo "❌ Some tests failed, analyzing which ones..."
+            
+            # Extract failed projects from NX output
+            FAILED_PROJECTS=$(grep -E "✖.*:test" test_output.log | sed 's/.*✖ \([^:]*\):test.*/\1/' | tr '\n' ',' | sed 's/,$//')
+            
+            if [ -n "$FAILED_PROJECTS" ]; then
+              echo "🔄 Failed projects: $FAILED_PROJECTS"
+              echo "🧹 Cleaning coverage directories for failed projects..."
+              
+              # Clean only coverage directories of failed projects
+              IFS=',' read -ra PROJECTS <<< "$FAILED_PROJECTS"
+              for project in "${PROJECTS[@]}"; do
+                find . -path "*/$project/coverage" -type d -exec rm -rf {} + 2>/dev/null || true
+              done
+              
+              echo "🔄 Retrying failed projects without cache..."
+              npx nx run-many --target=test --coverage --projects="$FAILED_PROJECTS" --skip-nx-cache
+            else
+              echo "⚠️ Could not identify failed projects, retrying all without cache..."
+              find . -name "coverage" -type d -exec rm -rf {} + 2>/dev/null || true
+              npx nx run-many --target=test --coverage --parallel --skip-nx-cache
+            fi
+          fi
+          
+          # Cleanup
+          rm -f test_output.log
       
       - name: Convert Istanbul to LCOV
         run: |
           npm install -g nyc
           
-          # Per ogni progetto
+          # For each project
           for dir in adapters/desk-adapter adapters/wp-adapter apps/installer; do
             if [ -f "$dir/coverage/coverage-final.json" ]; then
               echo "Converting $dir..."
@@ -114,7 +146,7 @@ jobs:
             fi
           done
           
-          # Chek
+          # Check
           find . -name "lcov.info" -type f
 
       - name: SonarQube Scan
