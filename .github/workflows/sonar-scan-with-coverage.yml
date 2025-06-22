@@ -60,14 +60,16 @@ jobs:
         run: pnpm install
       
       # Security audit (async)
+      
+      # Security audit (async)
       - name: Security Audit (async)
         run: |
           (
             echo "🔍 Running security audit..."
             pnpm audit --json --severity moderate > audit.json 2>/dev/null || true
             
-            # Simple HTML report
-            cat > dependency-check-report.html << 'EOF'
+            # Create HTML report header
+            cat > dependency-check-report.html << 'HTMLEOF'
             <!DOCTYPE html>
             <html>
             <head>
@@ -87,10 +89,11 @@ jobs:
                     <h1>Security Audit Report</h1>
                     <p>Generated: $(date)</p>
                 </div>
-            EOF
-                        
-            # Parse results
+            HTMLEOF
+            
+            # Parse results and add content
             if [ -f audit.json ] && [ -s audit.json ]; then
+              echo "Processing audit results..."
               node -e "
                 const fs = require('fs');
                 try {
@@ -118,6 +121,7 @@ jobs:
               echo '<div class="success"><h2>✅ Audit completed</h2></div>' >> dependency-check-report.html
             fi
             
+            # Close HTML
             echo "</body></html>" >> dependency-check-report.html
             echo "✅ Security report generated"
             rm -f audit.json
