@@ -68,21 +68,10 @@ jobs:
         run: |
           (
             echo "🔍 Running security audit..."
-            
-            # Run audit and capture both text and JSON output for debugging
-            echo "📝 Running pnpm audit --audit-level moderate for text output..."
             pnpm audit --audit-level moderate > audit_text.txt 2>&1 || true
-            
-            echo "📝 Running pnpm audit --json for JSON output..."
             pnpm audit --json > audit.json 2>&1 || true
             
-            # Debug: show what we captured
-            echo "📄 Audit text output:"
-            head -20 audit_text.txt || echo "No text output"
-            echo "📄 Audit JSON output:"
-            head -20 audit.json || echo "No JSON output"
-            
-            # Create simple HTML report
+            # Create HTML report
             echo "<!DOCTYPE html>" > dependency-check-report.html
             echo "<html><head><title>Security Audit Report</title></head>" >> dependency-check-report.html
             echo "<body style='font-family: Arial; margin: 20px;'>" >> dependency-check-report.html
@@ -90,17 +79,12 @@ jobs:
             echo "<p><strong>Generated:</strong> $(date)</p>" >> dependency-check-report.html
             echo "<p><strong>Severity Level:</strong> moderate and above</p>" >> dependency-check-report.html
             
-            # Try to parse JSON first, then fallback to text parsing
+            # Parse JSON audit results
             if [ -f audit.json ] && [ -s audit.json ]; then
-              echo "🔍 Processing JSON audit results..."
               node -e "
                 const fs = require('fs');
                 try {
-                  const jsonContent = fs.readFileSync('audit.json', 'utf8');
-                  console.log('JSON content preview:', jsonContent.substring(0, 200));
-                  
-                  const data = JSON.parse(jsonContent);
-                  console.log('Parsed data keys:', Object.keys(data));
+                  const data = JSON.parse(fs.readFileSync('audit.json', 'utf8'));
                   
                   // Try different possible structure formats
                   let vulns = {};
@@ -114,18 +98,25 @@ jobs:
                     vulnCount = Object.keys(vulns).length;
                   } else if (data.auditReportVersion && data.metadata) {
                     vulnCount = data.metadata.vulnerabilities || 0;
-                    console.log('Found metadata vulnerabilities count:', vulnCount);
                   }
-                  
-                  console.log('Vulnerability count:', vulnCount);
                   
                   if (vulnCount > 0 && Object.keys(vulns).length > 0) {
                     console.log('<h2>🚨 Found ' + vulnCount + ' vulnerabilities</h2>');
-                    Object.entries(vulns).forEach(([id, v]) => {
+                    
+                    // Sort vulnerabilities by severity (critical first)
+                    const severityOrder = { critical: 0, high: 1, moderate: 2, low: 3, info: 4, unknown: 5 };
+                    const sortedVulns = Object.entries(vulns).sort(([,a], [,b]) => {
+                      const severityA = a.severity || 'unknown';
+                      const severityB = b.severity || 'unknown';
+                      return (severityOrder[severityA] || 5) - (severityOrder[severityB] || 5);
+                    });
+                    
+                    sortedVulns.forEach(([id, v]) => {
                       const severity = v.severity || 'unknown';
-                      const severityColor = severity === 'critical' ? '#dc3545' : 
-                                          severity === 'high' ? '#fd7e14' : 
-                                          severity === 'moderate' ? '#ffc107' : '#28a745';
+                      const severityColor = severity === 'critical' ? '#6f42c1' : 
+                                          severity === 'high' ? '#dc3545' : 
+                                          severity === 'moderate' ? '#ffc107' : 
+                                          severity === 'low' ? '#28a745' : '#6c757d';
                       
                       console.log('<div style=\"border: 1px solid #ddd; border-left: 4px solid ' + severityColor + '; padding: 15px; margin: 15px 0; background: #f8f9fa;\">');
                       console.log('<h3 style=\"margin-top: 0;\">' + (v.title || v.advisory || 'Unknown vulnerability') + '</h3>');
@@ -148,26 +139,19 @@ jobs:
                     console.log('</div>');
                   }
                 } catch(e) {
-                  console.log('<div style=\"background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px;\">');
-                  console.log('<h2>⚠️ Could not parse JSON audit results</h2>');
-                  console.log('<p>Error:', e.message, '</p>');
-                  console.log('<p>Falling back to text parsing...</p>');
-                  console.log('</div>');
+                  // Fallback to text parsing if JSON fails
+                  const textContent = fs.readFileSync('audit_text.txt', 'utf8');
+                  if (textContent.includes('vulnerabilities found')) {
+                    console.log('<h2>📋 Audit Results</h2>');
+                    console.log('<pre style=\"background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;\">' + textContent + '</pre>');
+                  } else {
+                    console.log('<div style=\"background: #d1ecf1; border: 1px solid #bee5eb; padding: 15px; border-radius: 5px;\">');
+                    console.log('<h2>ℹ️ Audit completed</h2>');
+                    console.log('<p>No vulnerabilities found or audit completed successfully.</p>');
+                    console.log('</div>');
+                  }
                 }
-              " >> dependency-check-report.html 2>&1
-              
-              # If JSON failed, try parsing the text output
-              if grep -q "⚠️ Could not parse JSON" dependency-check-report.html; then
-                echo "🔄 JSON parsing failed, trying text parsing..."
-                if [ -f audit_text.txt ] && grep -q "vulnerabilities found" audit_text.txt; then
-                  echo "<h2>📋 Text Audit Results</h2>" >> dependency-check-report.html
-                  echo "<pre style='background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;'>" >> dependency-check-report.html
-                  cat audit_text.txt >> dependency-check-report.html
-                  echo "</pre>" >> dependency-check-report.html
-                else
-                  echo "<p style='color: #6c757d;'>No detailed vulnerability information available in text format.</p>" >> dependency-check-report.html
-                fi
-              fi
+              " >> dependency-check-report.html
             else
               echo "<div style='background: #d1ecf1; border: 1px solid #bee5eb; padding: 15px; border-radius: 5px;'>" >> dependency-check-report.html
               echo "<h2>ℹ️ Audit completed</h2>" >> dependency-check-report.html
@@ -177,10 +161,7 @@ jobs:
             
             echo "</body></html>" >> dependency-check-report.html
             echo "✅ Security report generated"
-            
-            # Keep audit files for debugging
-            echo "📁 Generated files:"
-            ls -la audit* dependency-check-report.html || true
+            rm -f audit.json audit_text.txt
           ) &
           echo $! > audit_pid.txt
         continue-on-error: true
