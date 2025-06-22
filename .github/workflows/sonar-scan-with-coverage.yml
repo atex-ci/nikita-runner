@@ -60,10 +60,6 @@ jobs:
         run: pnpm install
       
       # Security audit (async)
-      
-      # Security audit (async)
-    
-      # Security audit (async)
       - name: Security Audit (async)
         run: |
           (
@@ -75,7 +71,7 @@ jobs:
             echo "<!DOCTYPE html>" > dependency-check-report.html
             echo "<html><head><title>Security Audit Report</title></head>" >> dependency-check-report.html
             echo "<body style='font-family: Arial; margin: 20px;'>" >> dependency-check-report.html
-            echo "<h1>🔒 Security Audit Report</h1>" >> dependency-check-report.html
+            echo "<h1>Security Audit Report</h1>" >> dependency-check-report.html
             echo "<p><strong>Generated:</strong> $(date)</p>" >> dependency-check-report.html
             echo "<p><strong>Severity Level:</strong> moderate and above</p>" >> dependency-check-report.html
             
@@ -99,6 +95,10 @@ jobs:
                   } else if (data.auditReportVersion && data.metadata) {
                     vulnCount = data.metadata.vulnerabilities || 0;
                   }
+                  
+                  // Debug: show what we found
+                  console.log('<!-- DEBUG: Found ' + vulnCount + ' vulnerabilities in JSON -->');
+                  console.log('<!-- DEBUG: Vulnerabilities object keys: ' + Object.keys(vulns).join(', ') + ' -->');
                   
                   if (vulnCount > 0 && Object.keys(vulns).length > 0) {
                     console.log('<h2>🚨 Found ' + vulnCount + ' vulnerabilities</h2>');
@@ -124,6 +124,23 @@ jobs:
                       console.log('<p><strong>Package:</strong> ' + (v.module_name || v.name || 'Unknown') + '</p>');
                       console.log('<p><strong>Vulnerable versions:</strong> ' + (v.vulnerable_versions || v.range || 'Unknown') + '</p>');
                       console.log('<p><strong>Patched versions:</strong> ' + (v.patched_versions || v.fixAvailable || 'None available') + '</p>');
+                      
+                      // Add Paths field
+                      if (v.findings && v.findings.length > 0) {
+                        console.log('<p><strong>Paths:</strong></p>');
+                        console.log('<ul style=\"margin-left: 20px;\">');
+                        v.findings.forEach(finding => {
+                          if (finding.paths) {
+                            finding.paths.forEach(path => {
+                              console.log('<li style=\"font-family: monospace; font-size: 12px; margin: 2px 0;\">' + path + '</li>');
+                            });
+                          }
+                        });
+                        console.log('</ul>');
+                      } else if (v.via && Array.isArray(v.via)) {
+                        console.log('<p><strong>Via:</strong> ' + v.via.join(' > ') + '</p>');
+                      }
+                      
                       if (v.overview) console.log('<p><strong>Description:</strong> ' + v.overview + '</p>');
                       if (v.recommendation) console.log('<p><strong>Recommendation:</strong> ' + v.recommendation + '</p>');
                       if (v.url) console.log('<p><strong>More info:</strong> <a href=\"' + v.url + '\" target=\"_blank\">' + v.url + '</a></p>');
@@ -139,11 +156,12 @@ jobs:
                     console.log('</div>');
                   }
                 } catch(e) {
+                  console.log('<!-- DEBUG: JSON parsing failed with error: ' + e.message + ' -->');
                   // Fallback to text parsing if JSON fails
                   const textContent = fs.readFileSync('audit_text.txt', 'utf8');
-                  if (textContent.includes('vulnerabilities found')) {
+                  if (textContent.includes('vulnerabilities found') || textContent.includes('critical') || textContent.includes('moderate')) {
                     console.log('<h2>📋 Audit Results</h2>');
-                    console.log('<pre style=\"background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;\">' + textContent + '</pre>');
+                    console.log('<pre style=\"background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; white-space: pre-wrap;\">' + textContent + '</pre>');
                   } else {
                     console.log('<div style=\"background: #d1ecf1; border: 1px solid #bee5eb; padding: 15px; border-radius: 5px;\">');
                     console.log('<h2>ℹ️ Audit completed</h2>');
