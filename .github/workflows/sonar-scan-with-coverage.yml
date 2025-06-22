@@ -59,6 +59,72 @@ jobs:
       - name: Install dependencies
         run: pnpm install
       
+      # Security audit (async)
+      - name: Security Audit (async)
+        run: |
+          (
+            echo "🔍 Running security audit..."
+            pnpm audit --json --severity moderate > audit.json 2>/dev/null || true
+            
+            # Simple HTML report
+            cat > dependency-check-report.html << 'EOF'
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Security Audit Report</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    .header { background: #f4f4f4; padding: 15px; margin-bottom: 20px; }
+                    .vuln { border: 1px solid #ddd; margin: 10px 0; padding: 15px; }
+                    .critical { border-left: 5px solid red; }
+                    .high { border-left: 5px solid orange; }
+                    .moderate { border-left: 5px solid yellow; }
+                    .success { background: #d4edda; padding: 15px; color: green; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>Security Audit Report</h1>
+                    <p>Generated: $(date)</p>
+                </div>
+            EOF
+                        
+            # Parse results
+            if [ -f audit.json ] && [ -s audit.json ]; then
+              node -e "
+                const fs = require('fs');
+                try {
+                  const data = JSON.parse(fs.readFileSync('audit.json', 'utf8'));
+                  const vulns = data.vulnerabilities || {};
+                  const count = Object.keys(vulns).length;
+                  
+                  if (count > 0) {
+                    console.log('<p><strong>Found ' + count + ' vulnerabilities</strong></p>');
+                    Object.entries(vulns).forEach(([id, v]) => {
+                      console.log('<div class=\"vuln ' + (v.severity || 'info') + '\">');
+                      console.log('<h3>' + (v.title || 'Unknown') + ' (' + (v.severity || 'info').toUpperCase() + ')</h3>');
+                      console.log('<p><strong>Package:</strong> ' + (v.module_name || 'Unknown') + '</p>');
+                      console.log('<p><strong>Fix:</strong> ' + (v.recommendation || 'Update package') + '</p>');
+                      console.log('</div>');
+                    });
+                  } else {
+                    console.log('<div class=\"success\"><h2>✅ No vulnerabilities found!</h2></div>');
+                  }
+                } catch(e) {
+                  console.log('<div class=\"success\"><h2>✅ Audit completed</h2></div>');
+                }
+              " >> dependency-check-report.html
+            else
+              echo '<div class="success"><h2>✅ Audit completed</h2></div>' >> dependency-check-report.html
+            fi
+            
+            echo "</body></html>" >> dependency-check-report.html
+            echo "✅ Security report generated"
+            rm -f audit.json
+          ) &
+          echo $! > audit_pid.txt
+        continue-on-error: true
+      
       - name: Start client build (async)
         run: pnpm --filter client build &
         continue-on-error: true
@@ -155,6 +221,15 @@ jobs:
           # Check
           find . -name "lcov.info" -type f
 
+      # Wait for security audit
+      - name: Wait for Security Audit
+        run: |
+          if [ -f audit_pid.txt ]; then
+            wait $(cat audit_pid.txt) || true
+            rm audit_pid.txt
+          fi
+          [ -f dependency-check-report.html ] && echo "✅ Security report ready" || echo "⚠️ No report found"
+
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@master
         env:
@@ -167,6 +242,7 @@ jobs:
             -Dsonar.javascript.lcov.reportPaths=**/coverage/lcov.info
             -Dsonar.coverage.new_code.disabled=true
             -Dsonar.coverage.overall.disabled=true
+            -Dsonar.dependencyCheck.htmlReportPath=dependency-check-report.html
 
       - uses: sonarsource/sonarqube-quality-gate-action@master
         timeout-minutes: 5
