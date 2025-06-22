@@ -62,36 +62,21 @@ jobs:
       # Security audit (async)
       
       # Security audit (async)
+      # Security audit (async)
       - name: Security Audit (async)
         run: |
           (
             echo "🔍 Running security audit..."
             pnpm audit --json --severity moderate > audit.json 2>/dev/null || true
             
-            # Create HTML report header
-            cat > dependency-check-report.html << 'HTMLEOF'
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Security Audit Report</title>
-                <style>
-                    body { font-family: Arial, sans-serif; margin: 20px; }
-                    .header { background: #f4f4f4; padding: 15px; margin-bottom: 20px; }
-                    .vuln { border: 1px solid #ddd; margin: 10px 0; padding: 15px; }
-                    .critical { border-left: 5px solid red; }
-                    .high { border-left: 5px solid orange; }
-                    .moderate { border-left: 5px solid yellow; }
-                    .success { background: #d4edda; padding: 15px; color: green; }
-                </style>
-            </head>
-            <body>
-                <div class="header">
-                    <h1>Security Audit Report</h1>
-                    <p>Generated: $(date)</p>
-                </div>
-            HTMLEOF
+            # Create simple HTML report
+            echo "<!DOCTYPE html>" > dependency-check-report.html
+            echo "<html><head><title>Security Audit Report</title></head>" >> dependency-check-report.html
+            echo "<body style='font-family: Arial; margin: 20px;'>" >> dependency-check-report.html
+            echo "<h1>Security Audit Report</h1>" >> dependency-check-report.html
+            echo "<p>Generated: $(date)</p>" >> dependency-check-report.html
             
-            # Parse results and add content
+            # Parse and add results
             if [ -f audit.json ] && [ -s audit.json ]; then
               echo "Processing audit results..."
               node -e "
@@ -104,24 +89,23 @@ jobs:
                   if (count > 0) {
                     console.log('<p><strong>Found ' + count + ' vulnerabilities</strong></p>');
                     Object.entries(vulns).forEach(([id, v]) => {
-                      console.log('<div class=\"vuln ' + (v.severity || 'info') + '\">');
+                      console.log('<div style=\"border: 1px solid #ccc; padding: 10px; margin: 10px 0;\">');
                       console.log('<h3>' + (v.title || 'Unknown') + ' (' + (v.severity || 'info').toUpperCase() + ')</h3>');
                       console.log('<p><strong>Package:</strong> ' + (v.module_name || 'Unknown') + '</p>');
                       console.log('<p><strong>Fix:</strong> ' + (v.recommendation || 'Update package') + '</p>');
                       console.log('</div>');
                     });
                   } else {
-                    console.log('<div class=\"success\"><h2>✅ No vulnerabilities found!</h2></div>');
+                    console.log('<p style=\"color: green; font-weight: bold;\">No vulnerabilities found!</p>');
                   }
                 } catch(e) {
-                  console.log('<div class=\"success\"><h2>✅ Audit completed</h2></div>');
+                  console.log('<p style=\"color: blue;\">Audit completed</p>');
                 }
               " >> dependency-check-report.html
             else
-              echo '<div class="success"><h2>✅ Audit completed</h2></div>' >> dependency-check-report.html
+              echo "<p style='color: blue;'>Audit completed</p>" >> dependency-check-report.html
             fi
             
-            # Close HTML
             echo "</body></html>" >> dependency-check-report.html
             echo "✅ Security report generated"
             rm -f audit.json
