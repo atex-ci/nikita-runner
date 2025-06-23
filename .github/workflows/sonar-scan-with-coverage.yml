@@ -279,6 +279,7 @@ jobs:
             -Dsonar.projectKey=mytype
             -Dsonar.projectName=mytype
             -Dsonar.javascript.lcov.reportPaths=**/coverage/lcov.info
+            -Dsonar.typescript.internal.maxNodeMemory=4096
             -Dsonar.coverage.new_code.disabled=true
             -Dsonar.coverage.overall.disabled=true
             -Dsonar.dependencyCheck.htmlReportPath=dependency-check-report.html
