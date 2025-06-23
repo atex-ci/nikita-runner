@@ -63,187 +63,103 @@ jobs:
       - name: Security Audit (async)
         run: |
           (
-            echo "🔍 Running security audit..."
-            pnpm audit --json --audit-level moderate > audit.json 2>&1 || true
+          echo "🔍 Running security audit..."
+          pnpm audit --audit-level moderate > audit_text.txt 2>&1 || true
+          pnpm audit --json --audit-level moderate > audit.json 2>&1 || true
 
-            # Create HTML report
-            echo "<!DOCTYPE html>" > dependency-check-report.html
-            echo "<html><head><title>Security Audit Report</title></head>" >> dependency-check-report.html
-            echo "<body style='font-family: Arial; margin: 20px;'>" >> dependency-check-report.html
-            echo "<h1>🔒 Security Audit Report</h1>" >> dependency-check-report.html
-            echo "<p><strong>Generated:</strong> $(date)</p>" >> dependency-check-report.html
-            echo "<p><strong>Severity Level:</strong> moderate and above</p>" >> dependency-check-report.html
+          # Create HTML report
+          echo "<!DOCTYPE html>" > dependency-check-report.html
+          echo "<html><head><title>Security Audit Report</title></head>" >> dependency-check-report.html
+          echo "<body style='font-family: Arial; margin: 20px;'>" >> dependency-check-report.html
+          echo "<h1>🔒 Security Audit Report</h1>" >> dependency-check-report.html
+          echo "<p><strong>Generated:</strong> $(date)</p>" >> dependency-check-report.html
+          echo "<p><strong>Severity Level:</strong> moderate and above</p>" >> dependency-check-report.html
 
-            # Parse JSON audit results
-            if [ -f audit.json ] && [ -s audit.json ]; then
-                node -e "
-                const fs = require('fs');
-                let data;
-                try {
-                    data = JSON.parse(fs.readFileSync('audit.json', 'utf8'));
-                } catch (e) {
-                    console.log('<div style=\"background: #f8d7da; border: 1px solid #f5c6cb; padding: 10px; margin: 10px 0; border-radius: 5px;\">');
-                    console.log('<strong>❌ ERROR:</strong> Failed to parse audit.json</div>');
-                    process.exit(0);
-                }
-                
-                // Try different possible structure formats
-                let vulns = {};
-                let vulnCount = 0;
-                
-                if (data.advisories) {
-                    vulns = data.advisories;
-                    vulnCount = Object.keys(vulns).length;
-                } else if (data.vulnerabilities) {
-                    vulns = data.vulnerabilities;
-                    vulnCount = Object.keys(vulns).length;
-                } else if (data.metadata && data.metadata.vulnerabilities) {
-                    // Handle new format where vulnerabilities count is in metadata
-                    vulnCount = Object.values(data.metadata.vulnerabilities).reduce((sum, count) => sum + count, 0);
-                }
-                
-                console.log('<div style=\"background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 12px;\">');
-                console.log('<strong>🐛 DEBUG:</strong> Found ' + Object.keys(vulns).length + ' vulnerabilities in JSON<br>');
-                console.log('<strong>Vulnerabilities object keys:</strong> ' + Object.keys(vulns).slice(0, 10).join(', ') + (Object.keys(vulns).length > 10 ? '...' : '') + '<br>');
-                if (Object.keys(vulns).length > 0) {
-                    console.log('<strong>First vulnerability sample:</strong> ' + JSON.stringify(Object.values(vulns)[0], null, 2).substring(0, 300) + '...');
-                }
-                console.log('</div>');
-                
-                if (Object.keys(vulns).length > 0) {
-                    console.log('<h2>🚨 Found ' + Object.keys(vulns).length + ' vulnerabilities</h2>');
-                    
-                    // Convert to array and sort by severity (critical first)
-                    const severityOrder = { 'critical': 1, 'high': 2, 'moderate': 3, 'low': 4, 'info': 5, 'unknown': 6 };
-                    const vulnArray = Object.entries(vulns).map(([id, v]) => {
-                        const normalizedSeverity = (v.severity || 'unknown').toString().toLowerCase().trim();
-                        return {
-                            id,
-                            ...v,
-                            severity: normalizedSeverity,
-                            severityNum: severityOrder[normalizedSeverity] || 6
-                        };
-                    });
-                    
-                    // Debug: show severity distribution and sorting
-                    const severityDebug = vulnArray.reduce((acc, v) => {
-                        acc[v.severity + '(' + v.severityNum + ')'] = (acc[v.severity + '(' + v.severityNum + ')'] || 0) + 1;
-                        return acc;
-                    }, {});
-                    console.log('<div style=\"background: #e7f3ff; border: 1px solid #b3d9ff; padding: 8px; margin: 8px 0; border-radius: 3px; font-size: 11px;\">');
-                    console.log('<strong>🔍 SEVERITY DEBUG:</strong> ' + JSON.stringify(severityDebug) + '</div>');
-                    
-                    // Sort by severity number (critical=1 first), then by title
-                    vulnArray.sort((a, b) => {
-                        // First by severity number (ascending: 1=critical first, 2=high, etc.)
-                        if (a.severityNum !== b.severityNum) {
-                            return a.severityNum - b.severityNum;
-                        }
-                        
-                        // Then alphabetically by title
-                        const titleA = a.title || a.advisory || '';
-                        const titleB = b.title || b.advisory || '';
-                        return titleA.localeCompare(titleB);
-                    });
-                    
-                    vulnArray.forEach((v, index) => {
-                        const severity = v.severity || 'unknown';
-                        const severityColor = severity === 'critical' ? '#6f42c1' : 
-                                            severity === 'high' ? '#dc3545' : 
-                                            severity === 'moderate' ? '#ffc107' : 
-                                            severity === 'low' ? '#28a745' : '#6c757d';
-                        
-                        console.log('<div style=\"border: 1px solid #ddd; border-left: 4px solid ' + severityColor + '; padding: 15px; margin: 15px 0; background: #f8f9fa;\">');
-                        console.log('<h3 style=\"margin-top: 0;\">' + (v.title || v.advisory || 'Unknown vulnerability #' + v.id) + '</h3>');
-                        console.log('<p><strong>Severity:</strong> <span style=\"color: ' + severityColor + '; font-weight: bold;\">' + severity.toUpperCase() + '</span></p>');
-                        console.log('<p><strong>Package:</strong> ' + (v.module_name || v.name || 'Unknown') + '</p>');
-                        console.log('<p><strong>Vulnerable versions:</strong> ' + (v.vulnerable_versions || v.range || 'Unknown') + '</p>');
-                        console.log('<p><strong>Patched versions:</strong> ' + (v.patched_versions || v.fixAvailable || 'None available') + '</p>');
-                        
-                        // Handle paths - multiple possible formats
-                        let pathsFound = false;
-                        if (v.findings && Array.isArray(v.findings) && v.findings.length > 0) {
-                            console.log('<p><strong>Paths:</strong></p>');
-                            console.log('<ul style=\"margin-left: 20px;\">');
-                            v.findings.forEach(finding => {
-                                if (finding.paths && Array.isArray(finding.paths)) {
-                                    finding.paths.forEach(path => {
-                                        console.log('<li style=\"font-family: monospace; font-size: 12px; margin: 2px 0;\">' + path.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</li>');
-                                    });
-                                    pathsFound = true;
-                                }
-                            });
-                            console.log('</ul>');
-                        }
-                        
-                        // Alternative path formats
-                        if (!pathsFound) {
-                            if (v.via && Array.isArray(v.via)) {
-                                console.log('<p><strong>Via:</strong> ' + v.via.join(' > ') + '</p>');
-                            } else if (v.paths && Array.isArray(v.paths)) {
-                                console.log('<p><strong>Paths:</strong></p>');
-                                console.log('<ul style=\"margin-left: 20px;\">');
-                                v.paths.forEach(path => {
-                                    console.log('<li style=\"font-family: monospace; font-size: 12px; margin: 2px 0;\">' + path.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</li>');
-                                });
-                                console.log('</ul>');
-                            }
-                        }
-                        
-                        // Description
-                        if (v.overview) {
-                            const overview = v.overview.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                            console.log('<p><strong>Description:</strong> ' + overview + '</p>');
-                        }
-                        
-                        // Recommendation
-                        if (v.recommendation) {
-                            console.log('<p><strong>Recommendation:</strong> ' + v.recommendation + '</p>');
-                        }
-                        
-                        // More info link
-                        if (v.url) {
-                            console.log('<p><strong>More info:</strong> <a href=\"' + v.url + '\" target=\"_blank\">' + v.url + '</a></p>');
-                        }
-                        
-                        console.log('</div>');
-                    });
-                    
-                    // Summary at the end
-                    const severityCounts = vulnArray.reduce((acc, v) => {
-                        acc[v.severity] = (acc[v.severity] || 0) + 1;
-                        return acc;
-                    }, {});
-                    
-                    console.log('<div style=\"background: #e9ecef; border: 1px solid #dee2e6; padding: 15px; margin: 20px 0; border-radius: 5px;\">');
-                    console.log('<h3>📊 Summary</h3>');
-                    console.log('<p><strong>Total vulnerabilities:</strong> ' + vulnArray.length + '</p>');
-                    console.log('<ul>');
-                    Object.entries(severityCounts).sort(([a], [b]) => (severityOrder[a] || 5) - (severityOrder[b] || 5)).forEach(([severity, count]) => {
-                        console.log('<li><strong>' + severity.charAt(0).toUpperCase() + severity.slice(1) + ':</strong> ' + count + '</li>');
-                    });
-                    console.log('</ul>');
-                    console.log('</div>');
-                    
-                } else if (vulnCount > 0) {
-                    console.log('<h2>🚨 Found ' + vulnCount + ' vulnerabilities</h2>');
-                    console.log('<p>Vulnerabilities detected but detailed information could not be parsed. Check the logs for detailed vulnerability information.</p>');
-                } else {
-                    console.log('<div style=\"background: #d1ecf1; border: 1px solid #bee5eb; padding: 15px; border-radius: 5px; color: #0c5460;\">');
-                    console.log('<h2>✅ No vulnerabilities found!</h2>');
-                    console.log('<p>All dependencies are secure at the moderate level and above.</p>');
-                    console.log('</div>');
-                }
-                " >> dependency-check-report.html
-            else
-                echo "<div style='background: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; border-radius: 5px;'>" >> dependency-check-report.html
-                echo "<h2>❌ No audit data available</h2>" >> dependency-check-report.html
-                echo "<p>audit.json file not found or empty. The audit may have failed or produced no output.</p>" >> dependency-check-report.html
-                echo "</div>" >> dependency-check-report.html
-            fi
+          # Parse JSON audit results
+          if [ -f audit.json ] && [ -s audit.json ]; then
+              node -e "
+              const fs = require('fs');
+              let data;
+              try {
+                  data = JSON.parse(fs.readFileSync('audit.json', 'utf8'));
+              } catch (e) {
+                  console.log('<div style=\"background: #f8d7da; border: 1px solid #f5c6cb; padding: 10px; margin: 10px 0; border-radius: 5px;\">');
+                  console.log('<strong>❌ ERROR:</strong> Failed to parse audit.json</div>');
+                  process.exit(0);
+              }
+              
+              // Try different possible structure formats
+              let vulns = {};
+              let vulnCount = 0;
+              
+              if (data.advisories) {
+                  vulns = data.advisories;
+                  vulnCount = Object.keys(vulns).length;
+              } else if (data.vulnerabilities) {
+                  vulns = data.vulnerabilities;
+                  vulnCount = Object.keys(vulns).length;
+              } else if (data.metadata && data.metadata.vulnerabilities) {
+                  // Handle new format where vulnerabilities count is in metadata
+                  vulnCount = Object.values(data.metadata.vulnerabilities).reduce((sum, count) => sum + count, 0);
+              }
+              
+              
+              if (Object.keys(vulns).length > 0) {
+                  console.log('<h2>🚨 Found ' + Object.keys(vulns).length + ' vulnerabilities</h2>');
+                  
+                  // Sort vulnerabilities: critical first, then high, moderate, low
+                  const severityOrder = { critical: 1, high: 2, moderate: 3, low: 4 };
+                  const vulnArray = Object.entries(vulns)
+                      .map(([id, v]) => ({ id, ...v, severity: (v.severity || 'unknown').toLowerCase() }))
+                      .sort((a, b) => (severityOrder[a.severity] || 5) - (severityOrder[b.severity] || 5));
+                  
+                  vulnArray.forEach(v => {
+                      const severityColor = v.severity === 'critical' ? '#6f42c1' : 
+                                          v.severity === 'high' ? '#dc3545' : 
+                                          v.severity === 'moderate' ? '#ffc107' : 
+                                          v.severity === 'low' ? '#28a745' : '#6c757d';
+                      
+                      console.log('<div style=\"border: 1px solid #ddd; border-left: 4px solid ' + severityColor + '; padding: 15px; margin: 15px 0; background: #f8f9fa;\">');
+                      console.log('<h3 style=\"margin-top: 0;\">' + (v.title || 'Unknown vulnerability') + '</h3>');
+                      console.log('<p><strong>Severity:</strong> <span style=\"color: ' + severityColor + '; font-weight: bold;\">' + v.severity.toUpperCase() + '</span></p>');
+                      console.log('<p><strong>Package:</strong> ' + (v.module_name || 'Unknown') + '</p>');
+                      console.log('<p><strong>Vulnerable versions:</strong> ' + (v.vulnerable_versions || 'Unknown') + '</p>');
+                      console.log('<p><strong>Patched versions:</strong> ' + (v.patched_versions || 'None available') + '</p>');
+                      
+                      // Show paths
+                      if (v.findings && v.findings[0] && v.findings[0].paths) {
+                          console.log('<p><strong>Paths:</strong></p><ul style=\"margin-left: 20px;\">');
+                          v.findings[0].paths.forEach(path => {
+                              console.log('<li style=\"font-family: monospace; font-size: 12px; margin: 2px 0;\">' + path.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</li>');
+                          });
+                          console.log('</ul>');
+                      }
+                      
+                      if (v.overview) console.log('<p><strong>Description:</strong> ' + v.overview.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</p>');
+                      if (v.recommendation) console.log('<p><strong>Recommendation:</strong> ' + v.recommendation + '</p>');
+                      if (v.url) console.log('<p><strong>More info:</strong> <a href=\"' + v.url + '\" target=\"_blank\">' + v.url + '</a></p>');
+                      console.log('</div>');
+                  });
+                  
+              } else if (vulnCount > 0) {
+                  console.log('<h2>🚨 Found ' + vulnCount + ' vulnerabilities</h2>');
+                  console.log('<p>Vulnerabilities detected but detailed information could not be parsed. Check the logs for detailed vulnerability information.</p>');
+              } else {
+                  console.log('<div style=\"background: #d1ecf1; border: 1px solid #bee5eb; padding: 15px; border-radius: 5px; color: #0c5460;\">');
+                  console.log('<h2>✅ No vulnerabilities found!</h2>');
+                  console.log('<p>All dependencies are secure at the moderate level and above.</p>');
+                  console.log('</div>');
+              }
+              " >> dependency-check-report.html
+          else
+              echo "<div style='background: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; border-radius: 5px;'>" >> dependency-check-report.html
+              echo "<h2>❌ No audit data available</h2>" >> dependency-check-report.html
+              echo "<p>audit.json file not found or empty. The audit may have failed or produced no output.</p>" >> dependency-check-report.html
+              echo "</div>" >> dependency-check-report.html
+          fi
 
-            echo "</body></html>" >> dependency-check-report.html
-            echo "✅ Security report generated: dependency-check-report.html"
+          echo "</body></html>" >> dependency-check-report.html
+          echo "✅ Security report generated: dependency-check-report.html"
           ) &
           echo $! > audit_pid.txt
         continue-on-error: true
