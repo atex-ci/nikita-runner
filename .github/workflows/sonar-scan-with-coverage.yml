@@ -71,7 +71,7 @@ jobs:
             echo "<!DOCTYPE html>" > dependency-check-report.html
             echo "<html><head><title>Security Audit Report</title></head>" >> dependency-check-report.html
             echo "<body style='font-family: Arial; margin: 20px;'>" >> dependency-check-report.html
-            echo "<h1>Security Audit Report</h1>" >> dependency-check-report.html
+            echo "<h1>🔒 Security Audit Report</h1>" >> dependency-check-report.html
             echo "<p><strong>Generated:</strong> $(date)</p>" >> dependency-check-report.html
             echo "<p><strong>Severity Level:</strong> moderate and above</p>" >> dependency-check-report.html
             
@@ -96,9 +96,12 @@ jobs:
                     vulnCount = data.metadata.vulnerabilities || 0;
                   }
                   
-                  // Debug: show what we found
-                  console.log('<!-- DEBUG: Found ' + vulnCount + ' vulnerabilities in JSON -->');
-                  console.log('<!-- DEBUG: Vulnerabilities object keys: ' + Object.keys(vulns).join(', ') + ' -->');
+                  // Debug: show what we found  
+                  console.log('<div style=\"background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 12px;\">');
+                  console.log('<strong>🐛 DEBUG:</strong> Found ' + vulnCount + ' vulnerabilities in JSON<br>');
+                  console.log('<strong>Vulnerabilities object keys:</strong> ' + Object.keys(vulns).join(', ') + '<br>');
+                  console.log('<strong>First vulnerability sample:</strong> ' + JSON.stringify(Object.values(vulns)[0], null, 2).substring(0, 200) + '...');
+                  console.log('</div>');
                   
                   if (vulnCount > 0 && Object.keys(vulns).length > 0) {
                     console.log('<h2>🚨 Found ' + vulnCount + ' vulnerabilities</h2>');
