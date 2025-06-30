@@ -30,6 +30,8 @@ jobs:
       CONVOX_TOKEN: ${{ secrets.CONVOX_TOKEN }}
       GH_REPO_OWNER: ${{ github.repository_owner }} 
       GH_PASSWORD: ${{ secrets.GH_PASSWORD }}
+      DEFAULT_AWS_ACCESS_KEY_ID: ${{ secrets.DEFAULT_AWS_ACCESS_KEY_ID }}
+      DEFAULT_AWS_SECRET_ACCESS_KEY: ${{ secrets.DEFAULT_AWS_SECRET_ACCESS_KEY }}
       
     steps:
       - name: checkout
@@ -89,12 +91,12 @@ jobs:
       - name: authenticate aws cli
         run: |
           aws configure set aws_access_key_id "${{ secrets.DEFAULT_AWS_ACCESS_KEY_ID }}"
-          aws configure set aws_secret_access_key "${{ secrets.DEFAULT_AWS_ACCESS_KEY_ID}}"
+          aws configure set aws_secret_access_key "${{ secrets.DEFAULT_AWS_SECRET_ACCESS_KEY}}"
       
       # export any variables needed for the build script before running it
       - name: BUILD
         run: |
           export GH_PASSWORD="${{ secrets.GH_PASSWORD }}"
           export DEFAULT_AWS_ACCESS_KEY_ID="${{ secrets.DEFAULT_AWS_ACCESS_KEY_ID }}"
-          export DEFAULT_AWS_SECRET_ACCESS_KEY="${{ secrets.DEFAULT_AWS_ACCESS_KEY_ID }}"
+          export DEFAULT_AWS_SECRET_ACCESS_KEY="${{ secrets.DEFAULT_AWS_SECRET_ACCESS_KEY }}"
           ./shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.ENVIRONMENT }}" "${{ secrets.SALT }}" "${{ github.event.inputs.OPERATION }}"
