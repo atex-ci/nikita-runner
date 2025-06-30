@@ -90,8 +90,8 @@ jobs:
 
       - name: authenticate aws cli
         run: |
-          aws configure set aws_access_key_id "${{ DEFAULT_AWS_ACCESS_KEY_ID }}"
-          aws configure set aws_secret_access_key "${{ DEFAULT_AWS_SECRET_ACCESS_KEY }}"
+          aws configure set aws_access_key_id "$DEFAULT_AWS_ACCESS_KEY_ID"
+          aws configure set aws_secret_access_key "$DEFAULT_AWS_SECRET_ACCESS_KEY"
 
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3      
@@ -100,6 +100,6 @@ jobs:
       - name: BUILD
         run: |
           export GH_PASSWORD="${{ secrets.GH_PASSWORD }}"
-          export DEFAULT_AWS_ACCESS_KEY_ID="${{ DEFAULT_AWS_ACCESS_KEY_ID }}"
-          export DEFAULT_AWS_SECRET_ACCESS_KEY="${{ DEFAULT_AWS_SECRET_ACCESS_KEY }}"
+          export DEFAULT_AWS_ACCESS_KEY_ID="$DEFAULT_AWS_ACCESS_KEY_ID"
+          export DEFAULT_AWS_SECRET_ACCESS_KEY="$DEFAULT_AWS_SECRET_ACCESS_KEY"
           ./shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH}}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.ENVIRONMENT }}" "${{ secrets.SALT }}" "${{ github.event.inputs.OPERATION }}"
