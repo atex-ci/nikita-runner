@@ -1,4 +1,4 @@
-name: manual-build
+name: manual-build debug
 
 on:  
   workflow_dispatch:
