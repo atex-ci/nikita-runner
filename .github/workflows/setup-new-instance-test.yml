@@ -21,7 +21,6 @@ on:
         description: environment file content (JSON stringified)
 
 jobs:
-
   main:
     runs-on: ubuntu-latest
     env:
@@ -39,8 +38,7 @@ jobs:
       ENV_FILE_CONTENT: "${{ github.event.inputs.ENV_FILE_CONTENT }}"      
       DEFAULT_AWS_ACCESS_KEY_ID: "${{ secrets.DEFAULT_AWS_ACCESS_KEY_ID }}"
       DEFAULT_AWS_SECRET_ACCESS_KEY: "${{ secrets.DEFAULT_AWS_SECRET_ACCESS_KEY }}" 
-      
-   steps:
+    steps:
       - name: checkout
         run: |
           pwd
