@@ -25,23 +25,22 @@ jobs:
   main:
     runs-on: ubuntu-latest
     env:
-      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-      LOGTAIL_AUTH_TOKEN: ${{ secrets.LOGTAIL_AUTH_TOKEN }}
-      CONVOX_TOKEN: ${{ secrets.CONVOX_TOKEN }}
-      PEM_DEV_EC2_AURORA_BROWSER: ${{ secrets.PEM_DEV_EC2_AURORA_BROWSER }}
-      PEM_STAGING_EC2_AURORA_BROWSER: ${{ secrets.PEM_STAGING_EC2_AURORA_BROWSER }}
-      AURORA_DEV_ADMIN_PASSWORD: ${{ secrets.AURORA_DEV_ADMIN_PASSWORD }}
-      AURORA_STAGING_ADMIN_PASSWORD: ${{ secrets.AURORA_STAGING_ADMIN_PASSWORD }}
-      PIPELINE: install
-      ACTOR: ${{ github.event.inputs.ACTOR }}
-      HTML_URL: ${{ steps.jobs.outputs.html_url }}      
-      ENV_FILE_NAME: ${{ github.event.inputs.ENV_FILE_NAME }}
-      ENV_FILE_CONTENT: ${{ github.event.inputs.ENV_FILE_CONTENT }}      
+      SENTRY_AUTH_TOKEN: "${{ secrets.SENTRY_AUTH_TOKEN }}"
+      LOGTAIL_AUTH_TOKEN: "${{ secrets.LOGTAIL_AUTH_TOKEN }}"
+      CONVOX_TOKEN: "${{ secrets.CONVOX_TOKEN }}"
+      PEM_DEV_EC2_AURORA_BROWSER: "${{ secrets.PEM_DEV_EC2_AURORA_BROWSER }}"
+      PEM_STAGING_EC2_AURORA_BROWSER: "${{ secrets.PEM_STAGING_EC2_AURORA_BROWSER }}"
+      AURORA_DEV_ADMIN_PASSWORD: "${{ secrets.AURORA_DEV_ADMIN_PASSWORD }}"
+      AURORA_STAGING_ADMIN_PASSWORD: "${{ secrets.AURORA_STAGING_ADMIN_PASSWORD }}"
+      PIPELINE: "install"
+      ACTOR: "${{ github.event.inputs.ACTOR }}"
+      HTML_URL: "${{ steps.jobs.outputs.html_url }}"      
+      ENV_FILE_NAME: "${{ github.event.inputs.ENV_FILE_NAME }}"
+      ENV_FILE_CONTENT: "${{ github.event.inputs.ENV_FILE_CONTENT }}"      
       DEFAULT_AWS_ACCESS_KEY_ID: "${{ secrets.DEFAULT_AWS_ACCESS_KEY_ID }}"
       DEFAULT_AWS_SECRET_ACCESS_KEY: "${{ secrets.DEFAULT_AWS_SECRET_ACCESS_KEY }}" 
-
       
-    steps:
+   steps:
       - name: checkout
         run: |
           pwd
