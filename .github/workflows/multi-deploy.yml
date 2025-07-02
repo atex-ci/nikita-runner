@@ -28,10 +28,6 @@ jobs:
   deploy-sequentially:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 1
       
       - name: checkout mytype
         run: |
@@ -39,7 +35,7 @@ jobs:
           git config --global http.sslverify false
           git clone --branch "${{ github.event.inputs.branch}}" "https://${{ github.repository_owner }}:${{ secrets.GH_PASSWORD }}@github.com/atex-ci/nikita.git" .
           ls -la
-          
+
       - name: Make scripts executable
         run: |
           chmod +x shared/build/scripts/pipeline-utils/parallel-upgrade.sh
