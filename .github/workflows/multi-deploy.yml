@@ -33,7 +33,7 @@ jobs:
         run: |
           pwd
           git config --global http.sslverify false
-          git clone --branch "PMC-4092-parallel-upgrade" "https://${{ github.repository_owner }}:${{ secrets.GH_PASSWORD }}@github.com/atex-ci/nikita.git" .
+          git clone --branch "${{ github.event.inputs.branch}}" "https://${{ github.repository_owner }}:${{ secrets.GH_PASSWORD }}@github.com/atex-ci/nikita.git" .
           ls -la
 
       - name: Make scripts executable
