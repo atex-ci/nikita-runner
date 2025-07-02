@@ -35,6 +35,7 @@ jobs:
       
       - name: Make scripts executable
         run: |
+          ls -la
           chmod +x shared/build/scripts/pipeline-utils/parallel-upgrade.sh
           chmod +x shared/build/scripts/pipeline-utils/sequential-deploy.sh
 
