@@ -33,9 +33,15 @@ jobs:
         with:
           fetch-depth: 1
       
+      - name: checkout mytype
+        run: |
+          pwd
+          git config --global http.sslverify false
+          git clone --branch "${{ github.event.inputs.branch}}" "https://${{ github.repository_owner }}:${{ secrets.GH_PASSWORD }}@github.com/atex-ci/nikita.git" .
+          ls -la
+          
       - name: Make scripts executable
         run: |
-          ls -la
           chmod +x shared/build/scripts/pipeline-utils/parallel-upgrade.sh
           chmod +x shared/build/scripts/pipeline-utils/sequential-deploy.sh
 
