@@ -33,13 +33,19 @@ jobs:
         with:
           fetch-depth: 1
       
-      - name: Process deployments sequentially
+      - name: Make scripts executable
+        run: |
+          chmod +x shared/build/scripts/pipeline-utils/parallel-upgrade.sh
+          chmod +x shared/build/scripts/pipeline-utils/sequential-deploy.sh
+
+      - name: Process deployments
         id: deploy-loop
         run: |
           # Get the list of environments
           ENV_LIST="${{ github.event.inputs.env_list }}"
           BRANCH="${{ github.event.inputs.branch }}"
           GIT_HASH="${{ github.event.inputs.git_hash }}"
+          OPERATION="${{ github.event.inputs.operation }}"
           
           # Split into array
           IFS=',' read -ra ENVS <<< "$ENV_LIST"
@@ -48,7 +54,7 @@ jobs:
           COMPLETED=()
           PENDING=("${ENVS[@]}")
           
-          echo "Starting sequential deployments of ${#ENVS[@]} environments"
+          echo "Starting deployments of ${#ENVS[@]} environments with operation: $OPERATION"
           echo "Full environment list: $ENV_LIST"
           
           # FIRST: Update gist with all environments as pending
@@ -81,121 +87,54 @@ jobs:
           # Wait briefly for the initial status update
           sleep 2
           
-          # Process each environment sequentially
-          for ENV in "${ENVS[@]}"; do
-            echo "===== Processing environment: $ENV ====="
+          # Check if we should run in parallel (for upgrades) or sequential
+          if [ "$OPERATION" = "upgrade" ]; then
+            echo "Executing parallel upgrade script..."
+            ./shared/build/scripts/pipeline-utils/parallel-upgrade.sh "$ENV_LIST" "$BRANCH" "$GIT_HASH" "$MY_GITHUB_TOKEN"
             
-            # Call manual-build workflow
-            echo "Calling manual-build for environment $ENV..."
-            
-            # Create payload for manual-build workflow
-            MANUAL_BUILD_PAYLOAD="{\"ref\":\"main\",\"inputs\":{ \"GIT_BRANCH\": \"$BRANCH\", \"ENVIRONMENT\": \"$ENV\", \"OPERATION\": \"${{ github.event.inputs.operation }}\" }}"
-            
-            echo "manual-build payload: $MANUAL_BUILD_PAYLOAD"
-            
-            # Call the manual-build workflow and capture the response
-            RESPONSE=$(curl -s -X POST \
-              -H "Accept: application/vnd.github+json" \
-              -H "Authorization: Bearer $MY_GITHUB_TOKEN" \
-              "https://api.github.com/repos/atex-ci/nikita-runner/actions/workflows/manual-build.yml/dispatches" \
-              -d "$MANUAL_BUILD_PAYLOAD")
-            
-            echo "manual-build triggered for environment: $ENV"
-            
-            # Wait for the workflow to complete
-            echo "Waiting for manual-build workflow to complete..."
-            
-            # Sleep a bit to make sure the workflow has been registered
-            echo "Sleeping for 50 seconds to allow workflow to start..."
-            sleep 50
-            
-            # Check workflow status every 30 seconds until complete
-            WORKFLOW_COMPLETE=false
-            MAX_ATTEMPTS=120  # Maximum wait time: 60 minutes
-            ATTEMPT=0
-            
-            while [ "$WORKFLOW_COMPLETE" = false ] && [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-              # Check if there are any manual-build workflows running
-              RUNNING_RESPONSE=$(curl -s \
-                -H "Accept: application/vnd.github+json" \
-                -H "Authorization: Bearer $MY_GITHUB_TOKEN" \
-                "https://api.github.com/repos/atex-ci/nikita-runner/actions/runs?status=in_progress")
-              
-              QUEUED_RESPONSE=$(curl -s \
-                -H "Accept: application/vnd.github+json" \
-                -H "Authorization: Bearer $MY_GITHUB_TOKEN" \
-                "https://api.github.com/repos/atex-ci/nikita-runner/actions/runs?status=queued")
-              
-              # Count running manual-builds
-              RUNNING_COUNT=$(echo "$RUNNING_RESPONSE" | grep -o '"manual-build"' | wc -l)
-              QUEUED_COUNT=$(echo "$QUEUED_RESPONSE" | grep -o '"manual-build"' | wc -l)
-              
-              echo "Found $RUNNING_COUNT running and $QUEUED_COUNT queued manual-build workflows"
-              
-              # If no manual-builds are running or queued, consider it complete
-              if [ $RUNNING_COUNT -eq 0 ] && [ $QUEUED_COUNT -eq 0 ]; then
-                WORKFLOW_COMPLETE=true
-                echo "No manual-build workflows running or queued. Considering build complete."
-              else
-                echo "Workflow still running. Waiting 30 seconds before checking again. Attempt $ATTEMPT of $MAX_ATTEMPTS"
-                sleep 30
-                ATTEMPT=$((ATTEMPT + 1))
-              fi
-            done
-            
-            if [ "$WORKFLOW_COMPLETE" = false ]; then
-              echo "WARNING: Timed out waiting for workflow to complete! Moving on to next environment."
-            else
-              echo "Build for $ENV completed!"
-            fi
-            
-            # Now update arrays AFTER the build is complete
-            # Remove current env from pending and add to completed
-            COMPLETED+=("$ENV")
-            
-            # Rebuild the pending list without the current env
-            NEW_PENDING=()
-            for PEND in "${PENDING[@]}"; do
-              if [ "$PEND" != "$ENV" ]; then
-                NEW_PENDING+=("$PEND")
-              fi
-            done
-            PENDING=("${NEW_PENDING[@]}")
-            
-            # Convert arrays to comma-separated strings
+            # Update final status - all environments are now completed
+            COMPLETED=("${ENVS[@]}")
+            PENDING=()
             COMPLETED_STR=$(IFS=,; echo "${COMPLETED[*]}")
-            PENDING_STR=$(IFS=,; echo "${PENDING[*]}")
+            PENDING_STR=""
             
+            echo "Final parallel update - All environments completed"
             echo "Completed: $COMPLETED_STR"
             echo "Pending: $PENDING_STR"
             
-            # Update the gist AFTER the build is complete
-            echo "Updating deployment status in gist after build..."
-            echo '{
-              "ref": "'$BRANCH'",
-              "inputs": {
-                "completed_deploys": "'$COMPLETED_STR'",
-                "pending_deploys": "'$PENDING_STR'",
-                "branch": "'$BRANCH'",
-                "git_hash": "'$GIT_HASH'"
-              }
-            }' > payload.json
-
-            cat payload.json
+          else
+            echo "Executing sequential deploy script..."
+            ./shared/build/scripts/pipeline-utils/sequential-deploy.sh "$ENV_LIST" "$BRANCH" "$GIT_HASH" "$OPERATION" "$MY_GITHUB_TOKEN" "${{ github.repository }}"
             
-            # Update the gist by calling the update-deploy-status workflow
-            curl -s -X POST \
-              -H "Authorization: token $MY_GITHUB_TOKEN" \
-              -H "Accept: application/vnd.github.v3+json" \
-              "https://api.github.com/repos/${{ github.repository }}/actions/workflows/update-deploy-status.yml/dispatches" \
-              -d @payload.json
-            
-            # Wait briefly for the status update workflow to start
-            sleep 2
-            
-            echo "Status update triggered for environment: $ENV"
-          done
+            # For sequential, the final status is updated within the script
+            # Set final status based on all environments
+            COMPLETED=("${ENVS[@]}")
+            PENDING=()
+            COMPLETED_STR=$(IFS=,; echo "${COMPLETED[*]}")
+            PENDING_STR=""
+          fi
           
+          # Final status update (common for both parallel and sequential)
+          echo "Final status update..."
+          
+          echo '{
+            "ref": "'$BRANCH'",
+            "inputs": {
+              "completed_deploys": "'$COMPLETED_STR'",
+              "pending_deploys": "'$PENDING_STR'",
+              "branch": "'$BRANCH'",
+              "git_hash": "'$GIT_HASH'"
+            }
+          }' > final_payload.json
+
+          cat final_payload.json
+          
+          # Final update of the gist
+          curl -s -X POST \
+            -H "Authorization: token $MY_GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/update-deploy-status.yml/dispatches" \
+            -d @final_payload.json
           
           echo "All deployments have been completed and status has been finalized!"
         env:
