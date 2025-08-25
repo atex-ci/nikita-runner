@@ -1,5 +1,5 @@
 
-name: manual-build
+name: temporary build
 
 on:  
   workflow_dispatch:
