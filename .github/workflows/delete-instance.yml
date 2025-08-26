@@ -61,6 +61,13 @@ jobs:
         with:
           github_token: ${{ secrets.GH_PASSWORD }}
           job_name: ${{ github.job }}
+      - name: Ensure aws cli is present
+        run: |
+          aws --version
+      - name: Authenticate aws cli
+        run: |
+          aws configure set aws_access_key_id "${{ secrets.DEFAULT_AWS_ACCESS_KEY_ID }}"
+          aws configure set aws_secret_access_key "${{ secrets.DEFAULT_AWS_SECRET_ACCESS_KEY}}"          
           
       - name: BUILD
         run: |            
