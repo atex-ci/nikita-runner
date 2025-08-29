@@ -1,0 +1,88 @@
+name: migrate instance
+
+on:  
+  workflow_dispatch:
+    inputs:
+      ACTOR:
+        description: 'actor'     
+        required: true
+        default: 'atex-ci'
+      CUSTOMER_ID:
+        type: string
+        required: true
+        description: the customer id of the instance to migrate from
+      GIT_BRANCH:
+        required: true
+        default: 'main'        
+        description: 'The current branch of the instance to migrate from'     
+      GIT_BRANCH_HASH:
+        type: string
+        required: true
+        description: the hash of the branch to migrate from      
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    env:
+      PIPELINE: migrate
+      CONVOX_TOKEN: ${{ secrets.CONVOX_TOKEN }}
+      CUSTOMER_ID: ${{ github.event.inputs.CUSTOMER_ID }}
+      GIT_BRANCH: ${{ github.event.inputs.GIT_BRANCH }}
+      GIT_BRANCH_HASH: ${{ github.event.inputs.GIT_BRANCH_HASH }}
+      ACTOR: ${{ github.event.inputs.ACTOR }}
+      DEFAULT_AWS_ACCESS_KEY_ID: "${{ secrets.DEFAULT_AWS_ACCESS_KEY_ID }}"
+      DEFAULT_AWS_SECRET_ACCESS_KEY: "${{ secrets.DEFAULT_AWS_SECRET_ACCESS_KEY }}" 
+      GH_REPO_OWNER: ${{ github.repository_owner }}
+      GH_PASSWORD: ${{ secrets.GH_PASSWORD }}
+      PEM_DEV_EC2_AURORA_BROWSER: ${{ secrets.PEM_DEV_EC2_AURORA_BROWSER }}
+      PEM_STAGING_EC2_AURORA_BROWSER: ${{ secrets.PEM_STAGING_EC2_AURORA_BROWSER }}
+      AURORA_DEV_ADMIN_PASSWORD: ${{ secrets.AURORA_DEV_ADMIN_PASSWORD }}
+      AURORA_STAGING_ADMIN_PASSWORD: ${{ secrets.AURORA_STAGING_ADMIN_PASSWORD }}      
+    steps:
+      - name: checkout
+        run: |
+          pwd
+          echo "GIT_BRANCH is ${{ github.event.inputs.GIT_BRANCH}}"
+          git config --global http.sslverify false
+          git clone --branch "${{ github.event.inputs.GIT_BRANCH}}" "https://${{ github.repository_owner }}:${{ secrets.GH_PASSWORD }}@github.com/atex-ci/nikita.git" .
+          ls -la
+
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        id: pnpm-install
+        with:
+          version: 9
+          run_install: false
+  
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+      - name: Restore cached pnpm dependencies
+        id: cache-dependencies-restore
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Get Current Job Log URL
+        uses: Tiryoh/gha-jobid-action@v0
+        id: jobs
+        with:
+          github_token: ${{ secrets.GH_PASSWORD }}
+          job_name: ${{ github.job }}
+      - name: Ensure aws cli is present
+        run: |
+          aws --version
+      - name: Authenticate aws cli
+        run: |
+          aws configure set aws_access_key_id "${{ secrets.DEFAULT_AWS_ACCESS_KEY_ID }}"
+          aws configure set aws_secret_access_key "${{ secrets.DEFAULT_AWS_SECRET_ACCESS_KEY}}"          
+          
+      - name: BUILD
+        run: |            
+          ./shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH }}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.CUSTOMER_ID }}" "${{ secrets.SALT }}" migrate
