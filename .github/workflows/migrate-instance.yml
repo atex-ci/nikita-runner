@@ -11,6 +11,15 @@ on:
         type: string
         required: true
         description: the customer id of the instance to migrate from
+      OPERATION:
+        type: choice
+        required: true
+        description: the operation to perform (migrate=start migration, promote=start promotion, rollback=not implemented yet)
+        default: migrate
+        options: 
+          - migrate
+          - promote
+          - rollback
       GIT_BRANCH:
         required: true
         default: 'main'        
@@ -18,7 +27,7 @@ on:
       GIT_BRANCH_HASH:
         type: string
         required: true
-        description: the hash of the branch to migrate from      
+        description: the hash of the branch to migrate from       
 
 jobs:
   main:
@@ -85,4 +94,4 @@ jobs:
           
       - name: BUILD
         run: |            
-          ./shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH }}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.CUSTOMER_ID }}" "${{ secrets.SALT }}" migrate
+          ./shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH }}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.CUSTOMER_ID }}" "${{ secrets.SALT }}" "${{ github.event.inputs.OPERATION }}"
