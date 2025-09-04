@@ -14,12 +14,12 @@ on:
       OPERATION:
         type: choice
         required: true
-        description: the operation to perform (migrate=start migration, promote=start promotion, rollback=not implemented yet)
+        description: the operation to perform (migrate=start migration, promote=start promotion, delete-migrate-instance=delete the migrate instance)
         default: migrate
         options: 
           - migrate
           - promote
-          - rollback
+          - delete-migrate-instance
       GIT_BRANCH:
         required: true
         default: 'main'        
