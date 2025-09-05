@@ -33,7 +33,6 @@ jobs:
   main:
     runs-on: ubuntu-latest
     env:
-      PIPELINE: migrate
       CONVOX_TOKEN: ${{ secrets.CONVOX_TOKEN }}
       CUSTOMER_ID: ${{ github.event.inputs.CUSTOMER_ID }}
       GIT_BRANCH: ${{ github.event.inputs.GIT_BRANCH }}

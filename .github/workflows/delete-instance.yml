@@ -21,7 +21,6 @@ jobs:
   main:
     runs-on: ubuntu-latest
     env:
-      PIPELINE: destroy
       CONVOX_TOKEN: ${{ secrets.CONVOX_TOKEN }}
       CUSTOMER_ID: ${{ github.event.inputs.CUSTOMER_ID }}
       ACTOR: ${{ github.event.inputs.ACTOR }}

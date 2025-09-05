@@ -32,7 +32,6 @@ jobs:
       PEM_STAGING_EC2_AURORA_BROWSER: ${{ secrets.PEM_STAGING_EC2_AURORA_BROWSER }}
       AURORA_DEV_ADMIN_PASSWORD: ${{ secrets.AURORA_DEV_ADMIN_PASSWORD }}
       AURORA_STAGING_ADMIN_PASSWORD: ${{ secrets.AURORA_STAGING_ADMIN_PASSWORD }}
-      PIPELINE: install
       ENV_FILE_NAME: ${{ github.event.inputs.ENV_FILE_NAME }}
       ENV_FILE_CONTENT: ${{ github.event.inputs.ENV_FILE_CONTENT }}
       ACTOR: ${{ github.event.inputs.ACTOR }}
@@ -79,4 +78,4 @@ jobs:
           
       - name: BUILD
         run: |            
-          ./shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH }}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.ENV_FILE_NAME }}" "${{ secrets.SALT }}"
+          ./shared/build/boot.sh "${{ github.event.inputs.GIT_BRANCH }}" "${{ steps.jobs.outputs.html_url }}" "${{ github.event.inputs.ENV_FILE_NAME }}" "${{ secrets.SALT }}" install
