@@ -245,16 +245,17 @@ jobs:
         run: |
           npm install -g nyc
           
-          # For each project
-          for dir in adapters/desk-adapter adapters/wp-adapter apps/installer; do
-            if [ -f "$dir/coverage/coverage-final.json" ]; then
-              echo "Converting $dir..."
-              cd "$dir"
-              mkdir -p .nyc_output
-              cp coverage/coverage-final.json .nyc_output/out.json
-              nyc report --reporter=lcov --report-dir=coverage
-              cd - > /dev/null
-            fi
+          # Find all directories with coverage/coverage-final.json
+          find . -name "coverage-final.json" -path "*/coverage/*" | while read -r coverage_file; do
+            # Extract the project directory (parent of coverage directory)
+            project_dir=$(dirname "$(dirname "$coverage_file")")
+            echo "Converting $project_dir..."
+            
+            cd "$project_dir"
+            mkdir -p .nyc_output
+            cp coverage/coverage-final.json .nyc_output/out.json
+            nyc report --reporter=lcov --report-dir=coverage
+            cd - > /dev/null
           done
           
           # Check
