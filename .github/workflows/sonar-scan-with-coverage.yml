@@ -247,8 +247,8 @@ jobs:
           
           echo "🔍 Looking for coverage files to convert..."
           
-          # Find all directories with coverage/coverage-final.json
-          COVERAGE_FILES=$(find . -name "coverage-final.json" -path "*/coverage/*" 2>/dev/null || true)
+          # Find all directories with coverage/coverage-final.json, excluding .nx cache
+          COVERAGE_FILES=$(find . -name "coverage-final.json" -path "*/coverage/*" -not -path "*/.nx/*" 2>/dev/null || true)
           
           if [ -z "$COVERAGE_FILES" ]; then
             echo "ℹ️ No coverage-final.json files found, checking for other coverage formats..."
