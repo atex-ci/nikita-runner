@@ -245,21 +245,38 @@ jobs:
         run: |
           npm install -g nyc
           
-          # Find all directories with coverage/coverage-final.json
-          find . -name "coverage-final.json" -path "*/coverage/*" | while read -r coverage_file; do
-            # Extract the project directory (parent of coverage directory)
-            project_dir=$(dirname "$(dirname "$coverage_file")")
-            echo "Converting $project_dir..."
-            
-            cd "$project_dir"
-            mkdir -p .nyc_output
-            cp coverage/coverage-final.json .nyc_output/out.json
-            nyc report --reporter=lcov --report-dir=coverage
-            cd - > /dev/null
-          done
+          echo "🔍 Looking for coverage files to convert..."
           
-          # Check
-          find . -name "lcov.info" -type f
+          # Find all directories with coverage/coverage-final.json
+          COVERAGE_FILES=$(find . -name "coverage-final.json" -path "*/coverage/*" 2>/dev/null || true)
+          
+          if [ -z "$COVERAGE_FILES" ]; then
+            echo "ℹ️ No coverage-final.json files found, checking for other coverage formats..."
+            find . -name "coverage" -type d -exec sh -c 'echo "📁 $1:"; ls -la "$1"' _ {} \;
+          else
+            echo "$COVERAGE_FILES" | while read -r coverage_file; do
+              # Extract the project directory (parent of coverage directory)
+              project_dir=$(dirname "$(dirname "$coverage_file")")
+              echo "🔄 Converting $project_dir..."
+              
+              if cd "$project_dir" 2>/dev/null; then
+                if [ -f "coverage/coverage-final.json" ]; then
+                  mkdir -p .nyc_output
+                  cp coverage/coverage-final.json .nyc_output/out.json
+                  nyc report --reporter=lcov --report-dir=coverage || echo "⚠️ Failed to convert $project_dir"
+                else
+                  echo "⚠️ coverage-final.json not found in $project_dir/coverage"
+                fi
+                cd - > /dev/null
+              else
+                echo "❌ Cannot access directory $project_dir"
+              fi
+            done
+          fi
+          
+          # Check what lcov files we have
+          echo "📋 Final LCOV files:"
+          find . -name "lcov.info" -type f -exec sh -c 'echo "✅ $1 ($(wc -l < "$1") lines)"' _ {} \; || echo "❌ No lcov.info files found"
 
       # Wait for security audit
       - name: Wait for Security Audit
