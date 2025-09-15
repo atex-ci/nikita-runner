@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions: read-all
     env:
-      COVERAGE_EXCLUDE_PATHS: "*/shared/build/*"
+      COVERAGE_EXCLUDE_PATHS: "*/shared/build/*|*/.nx/*|*/node_modules/.cache/nx/*"
     steps:
       - name: checkout
         run: |
@@ -233,7 +233,7 @@ jobs:
               npx nx run-many --target=test --coverage --projects="$FAILED_PROJECTS" --skip-nx-cache
             else
               echo "⚠️ Could not identify failed projects, retrying all without cache..."
-              find . -name "coverage" -type d -exec rm -rf {} + 2>/dev/null || true
+              find . -name "coverage" -type d -not -path "*/.nx/*" -not -path "*/node_modules/.cache/nx/*" -exec rm -rf {} + 2>/dev/null || true
               npx nx run-many --target=test --coverage --parallel --skip-nx-cache
             fi
           else
@@ -254,7 +254,7 @@ jobs:
           
           if [ -z "$COVERAGE_FILES" ]; then
             echo "ℹ️ No coverage-final.json files found, checking for other coverage formats..."
-            find . -name "coverage" -type d -exec sh -c 'echo "📁 $1:"; ls -la "$1"' _ {} \;
+            find . -name "coverage" -type d -not -path "*/.nx/*" -not -path "*/node_modules/.cache/nx/*" -exec sh -c 'echo "📁 $1:"; ls -la "$1"' _ {} \;
           else
             echo "$COVERAGE_FILES" | while read -r coverage_file; do
               # Extract the project directory (parent of coverage directory)
@@ -278,7 +278,7 @@ jobs:
           
           # Check what lcov files we have
           echo "📋 Final LCOV files:"
-          find . -name "lcov.info" -type f -exec sh -c 'echo "✅ $1 ($(wc -l < "$1") lines)"' _ {} \; || echo "❌ No lcov.info files found"
+          find . -name "lcov.info" -type f -not -path "*/.nx/*" -not -path "*/node_modules/.cache/nx/*" -exec sh -c 'echo "✅ $1 ($(wc -l < "$1") lines)"' _ {} \; || echo "❌ No lcov.info files found"
 
       # Wait for security audit
       - name: Wait for Security Audit
@@ -295,7 +295,7 @@ jobs:
           echo "==============================================="
           
           # Find coverage directories, excluding unwanted ones
-          COVERAGE_DIRS=$(find . -name "coverage" -type d -not -path "$COVERAGE_EXCLUDE_PATHS" | sort)
+          COVERAGE_DIRS=$(find . -name "coverage" -type d -not -path "$COVERAGE_EXCLUDE_PATHS" -not -path "*/.nx/*" -not -path "*/node_modules/.cache/nx/*" | sort)
           
           TOTAL_DIRS=$(echo "$COVERAGE_DIRS" | wc -l)
           
