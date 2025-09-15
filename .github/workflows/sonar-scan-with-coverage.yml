@@ -21,6 +21,8 @@ jobs:
     name: Sonarqube Scan
     runs-on: ubuntu-latest
     permissions: read-all
+    env:
+      COVERAGE_EXCLUDE_PATHS: "*/shared/build/*"
     steps:
       - name: checkout
         run: |
@@ -247,8 +249,8 @@ jobs:
           
           echo "🔍 Looking for coverage files to convert..."
           
-          # Find all directories with coverage/coverage-final.json, excluding .nx cache
-          COVERAGE_FILES=$(find . -name "coverage-final.json" -path "*/coverage/*" -not -path "*/.nx/*" 2>/dev/null || true)
+          # Find coverage files, excluding .nx cache and unwanted directories
+          COVERAGE_FILES=$(find . -name "coverage-final.json" -path "*/coverage/*" -not -path "*/.nx/*" -not -path "$COVERAGE_EXCLUDE_PATHS" 2>/dev/null || true)
           
           if [ -z "$COVERAGE_FILES" ]; then
             echo "ℹ️ No coverage-final.json files found, checking for other coverage formats..."
@@ -292,7 +294,9 @@ jobs:
           echo "📊 Coverage directories summary before SonarQube scan:"
           echo "==============================================="
           
-          COVERAGE_DIRS=$(find . -name "coverage" -type d | sort)
+          # Find coverage directories, excluding unwanted ones
+          COVERAGE_DIRS=$(find . -name "coverage" -type d -not -path "$COVERAGE_EXCLUDE_PATHS" | sort)
+          
           TOTAL_DIRS=$(echo "$COVERAGE_DIRS" | wc -l)
           
           if [ -z "$COVERAGE_DIRS" ]; then
