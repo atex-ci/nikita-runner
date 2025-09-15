@@ -269,6 +269,48 @@ jobs:
           fi
           [ -f dependency-check-report.html ] && echo "✅ Security report ready" || echo "⚠️ No report found"
 
+      - name: Coverage Report Summary
+        run: |
+          echo "📊 Coverage directories summary before SonarQube scan:"
+          echo "==============================================="
+          
+          COVERAGE_DIRS=$(find . -name "coverage" -type d | sort)
+          TOTAL_DIRS=$(echo "$COVERAGE_DIRS" | wc -l)
+          
+          if [ -z "$COVERAGE_DIRS" ]; then
+            echo "❌ No coverage directories found"
+          else
+            echo "Found $TOTAL_DIRS coverage directories:"
+            
+            for coverage_dir in $COVERAGE_DIRS; do
+              PROJECT_NAME=$(dirname "$coverage_dir" | sed 's|^\./||')
+              FILE_COUNT=$(find "$coverage_dir" -type f | wc -l)
+              DIR_SIZE=$(du -sh "$coverage_dir" 2>/dev/null | cut -f1 || echo "N/A")
+              
+              echo "  📁 $PROJECT_NAME/coverage:"
+              echo "    - Files: $FILE_COUNT"
+              echo "    - Size: $DIR_SIZE"
+              
+              # Check for specific important files
+              if [ -f "$coverage_dir/lcov.info" ]; then
+                LCOV_SIZE=$(wc -l < "$coverage_dir/lcov.info" 2>/dev/null || echo "0")
+                echo "    - lcov.info: ✅ ($LCOV_SIZE lines)"
+              else
+                echo "    - lcov.info: ❌ missing"
+              fi
+              
+              if [ -f "$coverage_dir/coverage-final.json" ]; then
+                echo "    - coverage-final.json: ✅"
+              else
+                echo "    - coverage-final.json: ❌ missing"
+              fi
+              
+              echo ""
+            done
+          fi
+          
+          echo "==============================================="
+
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@master
         env:
