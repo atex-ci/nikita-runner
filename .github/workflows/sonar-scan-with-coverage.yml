@@ -347,7 +347,6 @@ jobs:
             -Dsonar.coverage.new_code.disabled=true
             -Dsonar.coverage.overall.disabled=true
             -Dsonar.dependencyCheck.htmlReportPath=dependency-check-report.html
-            -Dsonar.branch.name=${{ github.event.inputs.GIT_BRANCH }}
 
       - uses: sonarsource/sonarqube-quality-gate-action@master
         timeout-minutes: 5
