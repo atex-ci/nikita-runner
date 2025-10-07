@@ -36,7 +36,9 @@ jobs:
       ENV_FILE_CONTENT: ${{ github.event.inputs.ENV_FILE_CONTENT }}
       ACTOR: ${{ github.event.inputs.ACTOR }}
       DEFAULT_AWS_ACCESS_KEY_ID: "${{ secrets.DEFAULT_AWS_ACCESS_KEY_ID }}"
-      DEFAULT_AWS_SECRET_ACCESS_KEY: "${{ secrets.DEFAULT_AWS_SECRET_ACCESS_KEY }}" 
+      DEFAULT_AWS_SECRET_ACCESS_KEY: "${{ secrets.DEFAULT_AWS_SECRET_ACCESS_KEY }}"
+      GH_REPO_OWNER: ${{ github.repository_owner }} 
+      GH_PASSWORD: ${{ secrets.GH_PASSWORD }}
       
     steps:
       - name: checkout
