@@ -76,13 +76,26 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install
-
+        
+      - name: Install zx globally and add to PATH
+        run: |
+          # Install zx globally if not already installed
+          if ! command -v zx &> /dev/null; then
+            echo "Installing zx globally..."
+            pnpm install -g zx@^8.8.5
+          fi
+          # Add pnpm global bin directory to PATH
+          PNPM_GLOBAL_BIN=$(pnpm config get global-bin-dir)
+          echo "$PNPM_GLOBAL_BIN" >> $GITHUB_PATH
+          echo "zx is available at: $(which zx)"
+          
       - name: Get Current Job Log URL
         uses: Tiryoh/gha-jobid-action@v0
         id: jobs
         with:
           github_token: ${{ secrets.GH_PASSWORD }}
           job_name: ${{ github.job }}
+                
       - name: Ensure aws cli is present
         run: |
           aws --version
