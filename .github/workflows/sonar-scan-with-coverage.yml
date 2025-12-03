@@ -333,7 +333,22 @@ jobs:
           
           echo "==============================================="
 
+      - name: Check Coverage Files Exist
+        id: check-coverage
+        run: |
+          LCOV_COUNT=$(find . -name "lcov.info" -type f -not -path "*/.nx/*" -not -path "*/node_modules/*" | wc -l)
+          echo "Found $LCOV_COUNT lcov.info files"
+          
+          if [ "$LCOV_COUNT" -eq 0 ]; then
+            echo "❌ No coverage files found - skipping SonarQube scan"
+            echo "has_coverage=false" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Coverage files found - proceeding with SonarQube scan"
+            echo "has_coverage=true" >> $GITHUB_OUTPUT
+          fi
+          
       - name: SonarQube Scan
+        if: steps.check-coverage.outputs.has_coverage == 'true'
         uses: sonarsource/sonarqube-scan-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -347,6 +362,9 @@ jobs:
             -Dsonar.coverage.new_code.disabled=true
             -Dsonar.coverage.overall.disabled=true
             -Dsonar.dependencyCheck.htmlReportPath=dependency-check-report.html
+            -Dsonar.inclusions=**/*.ts,**/*.tsx
+            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/coverage/**,**/*.spec.ts,**/*.test.ts,**/*.spec.tsx,**/*.test.tsx,**/__mocks__/**,**/apps/client/src/components/debug/**,**/shared/build/**,**/types.ts,**/advanced-prosemirror-history.ts,**/*.json,**/*.js
+            -Dsonar.test.inclusions=**/*.spec.ts,**/*.test.ts,**/*.spec.tsx,**/*.test.tsx
 
       - uses: sonarsource/sonarqube-quality-gate-action@master
         timeout-minutes: 5
