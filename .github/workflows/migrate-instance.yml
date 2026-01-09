@@ -27,7 +27,12 @@ on:
       GIT_BRANCH_HASH:
         type: string
         required: true
-        description: the hash of the branch to migrate from       
+        description: the hash of the branch to migrate from
+      TARGET_APP_URL:
+        type: string
+        required: true
+        default: ''
+        description: the target app url (to download the status)
 
 jobs:
   main:
