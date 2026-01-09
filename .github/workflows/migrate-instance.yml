@@ -30,7 +30,7 @@ on:
         description: the hash of the branch to migrate from
       TARGET_APP_URL:
         type: string
-        required: true
+        required: false
         default: ''
         description: the target app url (to download the status)
 
