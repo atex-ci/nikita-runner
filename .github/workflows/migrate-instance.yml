@@ -37,6 +37,7 @@ jobs:
       CUSTOMER_ID: ${{ github.event.inputs.CUSTOMER_ID }}
       GIT_BRANCH: ${{ github.event.inputs.GIT_BRANCH }}
       GIT_BRANCH_HASH: ${{ github.event.inputs.GIT_BRANCH_HASH }}
+      TARGET_APP_URL: ${{ github.event.inputs.TARGET_APP_URL }}
       ACTOR: ${{ github.event.inputs.ACTOR }}
       DEFAULT_AWS_ACCESS_KEY_ID: "${{ secrets.DEFAULT_AWS_ACCESS_KEY_ID }}"
       DEFAULT_AWS_SECRET_ACCESS_KEY: "${{ secrets.DEFAULT_AWS_SECRET_ACCESS_KEY }}" 
