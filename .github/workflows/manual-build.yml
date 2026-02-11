@@ -21,6 +21,9 @@ on:
           - deploy
           - upgrade
 
+run-name: >
+  CI · branch=${{ github.ref_name }}
+
 jobs:
   main:
     runs-on: ubuntu-latest
