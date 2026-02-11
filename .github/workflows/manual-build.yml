@@ -22,7 +22,7 @@ on:
           - upgrade
 
 run-name: >
-  manual-build · ${{ github.ref_name }}
+  manual-build · ${{ github.event.inputs.GIT_BRANCH }}
 
 jobs:
   main:
