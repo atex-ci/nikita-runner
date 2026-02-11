@@ -16,6 +16,9 @@ on:
         required: true
         default: 'mytype'
 
+run-name: >
+  sonar-scan-with-coverage · ${{ github.event.inputs.GIT_BRANCH }}
+  
 jobs:
   sonarqube:
     name: Sonarqube Scan
