@@ -184,6 +184,12 @@ jobs:
         with:
           path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          
+      - name: SQ cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: sonar-cache
       
       - uses: nrwl/nx-set-shas@v3
       
