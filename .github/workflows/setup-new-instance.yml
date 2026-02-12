@@ -20,8 +20,14 @@ on:
         required: true
         description: environment file content (JSON stringified)
 
-jobs:
+run-name: >
+  setup-new-instance ·
+  for ${{ github.event.inputs.ENV_FILE_NAME }} ·
+  ${{ github.event.inputs.GIT_BRANCH != 'main'
+      && '[sticky] '
+      || '' }}${{ github.event.inputs.GIT_BRANCH }}
 
+jobs:
   main:
     runs-on: ubuntu-latest
     env:
