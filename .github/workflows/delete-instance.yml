@@ -19,7 +19,7 @@ on:
 
 run-name: >
   delete instance ·
-  for ${{ github.event.inputs.ENV_FILE_NAME }} ·
+  for ${{ github.event.inputs.CUSTOMER_ID }} ·
   ${{ github.event.inputs.GIT_BRANCH != 'main'
       && '[sticky] '
       || '' }}${{ github.event.inputs.GIT_BRANCH }}
