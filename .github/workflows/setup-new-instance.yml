@@ -69,11 +69,23 @@ jobs:
           echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
       - name: Restore cached pnpm dependencies
         id: cache-dependencies-restore
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-
+          
+      - name: Install zx globally and add to PATH
+        run: |
+          # Install zx globally if not already installed
+          if ! command -v zx &> /dev/null; then
+            echo "Installing zx globally..."
+            pnpm install -g zx@^8.8.5
+          fi
+          # Add pnpm global bin directory to PATH
+          PNPM_GLOBAL_BIN=$(pnpm config get global-bin-dir)
+          echo "$PNPM_GLOBAL_BIN" >> $GITHUB_PATH
+          echo "zx is available at: $(which zx)"
+          
       - name: Install dependencies
         run: pnpm install
 
