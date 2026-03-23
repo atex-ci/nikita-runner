@@ -35,6 +35,7 @@ jobs:
       GH_PASSWORD: ${{ secrets.GH_PASSWORD }}
       DEFAULT_AWS_ACCESS_KEY_ID: ${{ secrets.DEFAULT_AWS_ACCESS_KEY_ID }}
       DEFAULT_AWS_SECRET_ACCESS_KEY: ${{ secrets.DEFAULT_AWS_SECRET_ACCESS_KEY }}
+      JIRA_AUTH_TOKEN: ${{ secrets.JIRA_AUTH_TOKEN }}
       
     steps:
       - name: checkout
