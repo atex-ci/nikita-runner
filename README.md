@@ -1,1 +1,1 @@
-# nikita-runner
+# mytype-runner
