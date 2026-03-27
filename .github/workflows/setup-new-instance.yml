@@ -90,11 +90,11 @@ jobs:
         run: pnpm install
 
       - name: Get Current Job Log URL
-        uses: Tiryoh/gha-jobid-action@v0
         id: jobs
-        with:
-          github_token: ${{ secrets.GH_PASSWORD }}
-          job_name: ${{ github.job }}
+        run: |
+          JOBS_URL="https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs"
+          JOB_URL=$(curl -s -H "Authorization: Bearer ${{ secrets.GH_PASSWORD }}" "$JOBS_URL" | jq -r '.jobs[] | select(.name == "${{ github.job }}") | .html_url')
+          echo "html_url=$JOB_URL" >> $GITHUB_OUTPUT
           
       - name: BUILD
         run: |            
